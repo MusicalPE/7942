@@ -16,7 +16,21 @@
   body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.5}
   header{background:#fff;border-bottom:1px solid var(--line);padding:12px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;position:sticky;top:0;z-index:5}
   header h1{font-size:18px;margin:0 12px 0 0}
-  main{max-width:1280px;margin:0 auto;padding:16px 20px 60px}
+  main{max-width:1680px;margin:0 auto;padding:16px 20px 60px}
+  .split{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:14px;align-items:start}
+  .split>.card{margin-bottom:0}
+  .split .mx-wrap{max-height:calc(100vh - 300px)}
+  .side{position:sticky;top:64px;max-height:calc(100vh - 84px);overflow:auto;padding:0!important}
+  .side .stabs{display:flex;gap:4px;padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
+  .side .stabs button{flex:1;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 0;font-family:inherit;font-size:14px;cursor:pointer;color:var(--ink)}
+  .side .stabs button.on{background:var(--main);border-color:var(--main);color:#fff;font-weight:700}
+  .side .sbody{padding:12px 14px}
+  .side h3{font-size:14px;margin:14px 0 6px} .side h3:first-child{margin-top:0}
+  .side .tbl th,.side .tbl td{padding:5px 6px;font-size:13px}
+  .side .kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .side .kpi div{background:#fafaf8;border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}
+  .side .kpi b{display:block;font-size:20px}
+  .mx th.rn{cursor:pointer}
   .tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:14px}
   .tabs button{border:1px solid var(--line);background:#fff;padding:9px 14px;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit;color:var(--ink)}
   .tabs button.on{background:var(--main);border-color:var(--main);color:#fff;font-weight:700}
@@ -103,7 +117,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.1.0', NEED_SHELL=1;
+var APP_VER='1.2.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -380,9 +394,12 @@ function vMatrix(v){
   [['○ 받은 수','rO'],['X 받은 수','rX'],['관심도','interest'],['호감도','like']].forEach(function(k){
     h+='<tr class="foot"><th class="rn">'+k[0]+'</th>'+S.map(function(s){return '<td>'+A.st[s.id][k[1]]+'</td>';}).join('')+'<td></td><td></td></tr>';
   });
-  h+='</table></div><p class="sub">관심도 = 받은 ○ + 받은 X (친구들이 얼마나 신경 쓰는지), 호감도 = 받은 ○ − 받은 X, 긍정성·부정성 = 그 학생이 친구들에게 준 ○·X 수. 칸을 누르면 두 학생의 줄이 표시돼요.</p></div>';
-  h+=statTable(A);
+  var wide=window.innerWidth>=1200; T.lastWide=wide;
+  h+='</table></div><p class="sub">관심도 = 받은 ○ + 받은 X (친구들이 얼마나 신경 쓰는지), 호감도 = 받은 ○ − 받은 X, 긍정성·부정성 = 그 학생이 친구들에게 준 ○·X 수. 칸을 누르면 두 학생의 줄이 표시돼요.'+(wide?' 이름을 누르면 오른쪽에 그 학생이 보여요.':'')+'</p></div>';
+  if(wide){ h='<div class="split">'+h+'<aside class="card side" id="side"></aside></div>'; }
+  else h+=statTable(A);
   v.innerHTML=h;
+  if(wide){ renderSide(A); v.querySelectorAll('.mx th.rn[data-r]').forEach(function(th){ th.onclick=function(){ T.sel=th.dataset.r; T.side='stu'; renderSide(A); }; }); }
   document.getElementById('mxg').onchange=function(){ T.mxGroup=this.checked; draw(); };
   document.getElementById('exp').onclick=function(){ call('exportMatrix',T.token,T.rid).then(function(u){ if(IS_GAS){ modal('<h2>시트를 만들었어요</h2><div class="sub">스프레드시트에 [분석표_회차이름] 탭이 생겼어요.</div>',[['닫기'],['열어 보기',function(){ window.open(u,'_blank'); },'main']]); } else toast('미리보기에서는 내보내지 않아요'); }).catch(fail); };
   v.querySelectorAll('.mx td[data-a]').forEach(function(td){ td.onclick=function(){
@@ -491,6 +508,56 @@ function socSvg(A,G){
   });
   return '<svg class="soc" viewBox="0 0 '+W+' '+W+'" xmlns="http://www.w3.org/2000/svg">'+lines+nodes+'</svg>';
 }
+
+/* ───────── PC 오른쪽 분석 칸 ───────── */
+function renderSide(A){
+  var el=document.getElementById('side'); if(!el) return;
+  T.side=T.side||'sum';
+  var nameOf={}; A.studs.forEach(function(s){nameOf[s.id]=s.name;});
+  document.querySelectorAll('.mx th.rn.hl').forEach(function(x){x.classList.remove('hl');});
+  if(T.side==='stu'&&T.sel){ var th=document.querySelector('.mx th.rn[data-r="'+T.sel+'"]'); if(th) th.classList.add('hl'); }
+  function chips(arr,cls){ return arr.length?'<div class="names">'+arr.map(function(id){return '<span class="'+(typeof cls==='function'?cls(id):(cls||''))+'">'+esc(nameOf[id])+'</span>';}).join('')+'</div>':'<span class="sub">없음</span>'; }
+  var h='<div class="stabs">'+[['sum','요약'],['grp','친구 그룹'],['stu','학생']].map(function(t){return '<button data-s="'+t[0]+'" class="'+(T.side===t[0]?'on':'')+'">'+t[1]+'</button>';}).join('')+'</div><div class="sbody">';
+  if(T.side==='sum'){
+    var pg=0,pr=0; Object.keys(A.pairs).forEach(function(k){ if(A.pairs[k]==='g') pg++; if(A.pairs[k]==='r') pr++; });
+    var flagged=A.studs.filter(function(s){return A.st[s.id].flags.length;});
+    h+='<div class="kpi"><div><b>'+A.n+'/'+A.studs.length+'</b><span class="sub">제출</span></div><div><b>'+(pg/2)+'</b><span class="sub">서로 ○ 짝</span></div><div><b>'+(pr/2)+'</b><span class="sub">서로 X 짝</span></div></div>';
+    h+='<h3>한번 더 살펴볼 학생</h3>'+(flagged.length?flagged.map(function(s){ return '<div style="margin:4px 0"><a href="#" data-pick="'+s.id+'">'+esc(s.name)+'</a>'+A.st[s.id].flags.map(function(f){return '<span class="flag">'+f+'</span>';}).join('')+'</div>'; }).join(''):'<span class="sub">없음</span>');
+    var rows=A.studs.map(function(s){ var x=A.st[s.id]; x.pc=x.praise.length; return x; });
+    var k=T.sortKey, d=T.sortDir;
+    if(['no','name','rO','rX','like','mutualO','pc'].indexOf(k)<0){ k='no'; d=1; }
+    rows.sort(function(a,b){ var x=k==='no'?a.s.no:k==='name'?a.s.name:a[k], y=k==='no'?b.s.no:k==='name'?b.s.name:b[k]; return (x>y?1:x<y?-1:0)*d; });
+    var cols=[['name','이름'],['rO','받은○'],['rX','받은X'],['like','호감도'],['mutualO','서로○'],['pc','칭찬']];
+    h+='<h3>학생별 통계 <span class="sub">제목을 누르면 정렬</span></h3><table class="tbl" id="sideStat"><tr>'+cols.map(function(c){return '<th data-k="'+c[0]+'" class="'+(c[0]==='name'?'':'num')+'" style="cursor:pointer">'+c[1]+(k===c[0]?(d>0?'▲':'▼'):'')+'</th>';}).join('')+'</tr>'+
+      rows.map(function(r){ return '<tr><td><a href="#" data-pick="'+r.s.id+'">'+esc(r.s.name)+'</a>'+(r.responded?'':' <span class="sub">미제출</span>')+'</td>'+['rO','rX','like','mutualO','pc'].map(function(c){ var val=r[c]; if(c==='mutualO'&&!r.responded) val='-'; return '<td class="num">'+val+'</td>'; }).join('')+'</tr>'; }).join('')+'</table>';
+  }
+  if(T.side==='grp'){
+    var G=groupsOf(A);
+    h+='<h3>서로 ○ 그룹·짝</h3>'+(G.groups.length?G.groups.map(function(g,k){ return '<div style="margin:6px 0"><span class="gdot" style="background:'+GCOL[k%GCOL.length]+'"></span><b style="font-size:13px">'+(g.length>=3?'그룹 ':'짝 ')+(k+1)+'</b>'+chips(g,'o')+'</div>'; }).join(''):'<span class="sub">없음</span>');
+    h+='<h3>서로 ○ 친구가 없는 학생</h3>'+chips(G.alone,'x');
+    if(G.between.length) h+='<h3>그룹 사이 갈등</h3>'+G.between.slice(0,6).map(function(b){ return '<div style="font-size:13px;margin:3px 0">'+(G.groups[b.i].length>=3?'그룹 ':'짝 ')+(b.i+1)+' ↔ '+(G.groups[b.j].length>=3?'그룹 ':'짝 ')+(b.j+1)+' <span class="sub">'+[b.r?'서로 X '+b.r:'',b.y?'엇갈림 '+b.y:'',b.ox?'한쪽 X '+b.ox:''].filter(Boolean).join(', ')+'</span></div>'; }).join('');
+    h+='<p class="sub" style="margin-top:12px">관계 그림과 자세한 내용은 [친구 그룹] 탭에 있어요. 관계표 위의 "친구 그룹끼리 모아 보기"를 켜면 표도 그룹별로 모여요.</p>';
+  }
+  if(T.side==='stu'){
+    if(!T.sel||!A.st[T.sel]){ h+='<p class="sub">왼쪽 표에서 학생 이름을 눌러 주세요.</p>'; }
+    else {
+      var x=A.st[T.sel], r=A.resp[T.sel], others=A.studs.filter(function(s){return s.id!==T.sel;}).map(function(s){return s.id;});
+      var pc=function(i){ var p=A.pairs[T.sel+'|'+i]; return p==='g'?'m':p==='r'?'x':''; };
+      h+='<h3 style="font-size:17px">'+x.s.no+'. '+esc(x.s.name)+(r?'':' <span class="sub">(미제출)</span>')+'</h3>'+x.flags.map(function(f){return '<span class="flag" style="margin-left:0;margin-right:4px">'+f+'</span>';}).join('')+
+        '<div class="kpi" style="margin-top:8px"><div><b>'+x.rO+'</b><span class="sub">받은 ○</span></div><div><b>'+x.rX+'</b><span class="sub">받은 X</span></div><div><b>'+x.like+'</b><span class="sub">호감도</span></div></div>';
+      if(r){ h+='<h3>이 학생이 ○</h3>'+chips(others.filter(function(i){return r.rel[i]==='o';}),pc)+'<h3>이 학생이 X</h3>'+chips(others.filter(function(i){return r.rel[i]==='x';}),pc); }
+      h+='<h3>○를 준 친구</h3>'+chips(others.filter(function(i){return A.resp[i]&&A.resp[i].rel[T.sel]==='o';}),pc)+'<h3>X를 준 친구</h3>'+chips(others.filter(function(i){return A.resp[i]&&A.resp[i].rel[T.sel]==='x';}),pc);
+      h+='<h3>받은 칭찬 ('+x.praise.length+')</h3>'+(x.praise.length?x.praise.slice(0,4).map(function(p){return '<div class="reason"><b>'+esc(p.from)+'</b>'+esc(p.reason||'')+'</div>';}).join('')+(x.praise.length>4?'<div class="sub">외 '+(x.praise.length-4)+'개</div>':''):'<span class="sub">없음</span>');
+      h+='<p style="margin-top:12px"><button class="btn sm main" id="goStu">서술형 답까지 자세히 보기</button></p><p class="sub">진한 초록 = 서로 ○, 진한 빨강 = 서로 X</p>';
+    }
+  }
+  el.innerHTML=h+'</div>';
+  el.querySelectorAll('.stabs button').forEach(function(b){ b.onclick=function(){ T.side=b.dataset.s; renderSide(A); }; });
+  el.querySelectorAll('[data-pick]').forEach(function(a){ a.onclick=function(e){ e.preventDefault(); T.sel=a.dataset.pick; T.side='stu'; renderSide(A); }; });
+  el.querySelectorAll('#sideStat th').forEach(function(th){ th.onclick=function(){ var k=th.dataset.k; if(T.sortKey===k) T.sortDir*=-1; else { T.sortKey=k; T.sortDir=(k==='name')?1:-1; } renderSide(A); }; });
+  var gs=document.getElementById('goStu'); if(gs) gs.onclick=function(){ T.tab='student'; draw(); };
+}
+window.addEventListener('resize',function(){ clearTimeout(T._rz); T._rz=setTimeout(function(){ if(T.tab==='matrix'&&T.token&&(window.innerWidth>=1200)!==T.lastWide) draw(); },200); });
 
 function statTable(A){
   var rows=A.studs.map(function(s){ return A.st[s.id]; });
