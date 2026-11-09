@@ -8,7 +8,14 @@ window.REGISTRY_URL = 'https://script.google.com/macros/s/AKfycbyMtTZkspnQU8jaPJ
 //    trial: 다른 선생님이 7942의 AI로 무료 체험할 수 있는 횟수 (그 뒤엔 자기 Gemini 키)
 //    freeShells: 횟수 제한 없이 쓰는 반(껍데기 주소 키를 SHA-256 으로 바꾼 값) — 만든이 반
 window.AI_CONFIG = {
-  firebase: null,
+  firebase: {
+    apiKey: 'AIzaSyBI5MO5nTu4vRxxrrGcOxnIOhgMm69Ak9k',
+    authDomain: 'school-7942.firebaseapp.com',
+    projectId: 'school-7942',
+    storageBucket: 'school-7942.firebasestorage.app',
+    messagingSenderId: '599594794605',
+    appId: '1:599594794605:web:6f592d8b55b20175ebc964'
+  },
   recaptchaSiteKey: '',
   models: ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-3.5-flash-lite'],
   trial: 3,
