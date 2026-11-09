@@ -17,6 +17,14 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#FFF8EE">
+<script>
+/* 카카오톡 안 브라우저로 열면 휴대폰 기본 브라우저로 넘김 (한 번만) — 앱 모음 페이지와 같은 방식 */
+(function(){
+  if (!/KAKAOTALK/i.test(navigator.userAgent)) return;
+  try{ if (sessionStorage.getItem("kakao-out")) return; sessionStorage.setItem("kakao-out", "1"); }catch(e){}
+  location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
 <style>
@@ -136,7 +144,7 @@
 <script>
 var KEY_NAME='7942_key';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.7.0', NEED_SHELL=1;
+var APP_VER='1.7.1', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
