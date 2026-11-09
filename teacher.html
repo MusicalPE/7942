@@ -205,7 +205,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.6.1', NEED_SHELL=1;
+var APP_VER='1.6.2', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -742,7 +742,23 @@ function makeAnon(studs){
     pairs.forEach(function(p){ s=s.split(p[0]).join('\u0001'+marks.length+'\u0002'); marks.push(p[1]); });
     return s.replace(/\u0001(\d+)\u0002/g,function(_,k){ return marks[+k]; });
   }
-  function show(text){ return String(text==null?'':text).replace(/학생(\d+)/g,function(m,n){ var nm=byTok['학생'+n]; return nm?nm:m; }); }
+  function show(text){
+    // "학생3이" → "강민화가"처럼 이름 끝 받침에 맞춰 조사도 고침
+    return String(text==null?'':text).replace(/학생(\d+)(이랑|랑|으로|로|은|는|을|를|과|와|이|가)?([가-힣]?)/g,function(m,n,j,next){
+      var nm=byTok['학생'+n]; if(!nm) return m;
+      next=next||''; if(!j) return nm+next;
+      var c=nm.charCodeAt(nm.length-1)-0xAC00, jong=(c>=0&&c<11172)?c%28:0, has=jong>0;
+      var out;
+      if(j==='이랑'||j==='랑') out=has?'이랑':'랑';
+      else if(j==='으로'||j==='로') out=(has&&jong!==8)?'으로':'로';
+      else if(j==='은'||j==='는') out=has?'은':'는';
+      else if(j==='을'||j==='를') out=has?'을':'를';
+      else if(j==='과'||j==='와') out=has?'과':'와';
+      else if(j==='이'&&next){ out=has?'이':''; if(!has&&next==='에') next='예'; }   // "학생3이다·이에요" → "민화다·민화예요"
+      else out=has?'이':'가';
+      return nm+out+next;
+    });
+  }
   return {tok:tok,hide:hide,show:show};
 }
 function deepShow(v,show){ if(typeof v==='string') return show(v); if(Array.isArray(v)) return v.map(function(x){return deepShow(x,show);}); if(v&&typeof v==='object'){ var o={}; Object.keys(v).forEach(function(k){ o[k]=deepShow(v[k],show); }); return o; } return v; }
