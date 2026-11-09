@@ -167,6 +167,21 @@
   .codecard{border:2px dashed #E2D6C4;border-radius:16px;margin:4px}
   .codecard .c{font-family:var(--round);font-weight:400;color:#2B735A}
   .demo{background:#FFF1C9;border:0;border-radius:12px;color:#5C4510}
+
+  /* ───── 마우스를 올리면 통통 튀어나오기 ───── */
+  .brand span,.mini-brand i,.friend .dot,.seg button,.qno{transition:transform .28s cubic-bezier(.34,1.7,.5,1),box-shadow .2s}
+  .brand span:hover,.brand span:active{transform:translateY(-14px) scale(1.15) rotate(-8deg)!important;box-shadow:0 10px 0 rgba(59,54,49,.08)}
+  .brand span:nth-child(even):hover,.brand span:nth-child(even):active{transform:translateY(-14px) scale(1.15) rotate(8deg)!important}
+  .mini-brand i:hover{transform:translateY(-5px) scale(1.18) rotate(-8deg)}
+  .mini-brand i:nth-child(even):hover{transform:translateY(-5px) scale(1.18) rotate(8deg)}
+  .friend .dot:hover{transform:scale(1.18) rotate(-10deg)}
+  .seg button:hover{transform:translateY(-4px) scale(1.07)}
+  .qno:hover{transform:scale(1.2) rotate(-10deg)}
+  .btn,.tabs button,.side .stabs button{transition:transform .2s cubic-bezier(.34,1.7,.5,1),box-shadow .2s}
+  .btn:not(:disabled):hover,.tabs button:hover{transform:translateY(-2px)}
+  .side .kpi div{transition:transform .25s cubic-bezier(.34,1.7,.5,1)}
+  .side .kpi div:hover{transform:translateY(-4px) scale(1.04)}
+  @media (prefers-reduced-motion: reduce){ .brand span,.mini-brand i,.friend .dot,.seg button,.qno,.btn,.tabs button,.side .kpi div{transition:none} }
 </style>
 </head>
 <body>
@@ -177,7 +192,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.4.1', NEED_SHELL=1;
+var APP_VER='1.4.2', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -888,22 +903,7 @@ function vRoster(v){
   var pr=document.getElementById('pr'); if(pr) pr.onclick=function(){
     var w=window.open('','_blank');
     if(!w){ toast('팝업이 막혀 있어요'); return; }
-    w.document.write('<html><head><meta charset="utf-8"><title>7942 코드 카드</title><style>body{font-family:"Malgun Gothic",sans-serif;margin:10mm}.codes{display:grid;grid-template-columns:repeat(4,1fr)}.codecard{border:1px dashed #999;padding:14px 8px;text-align:center;page-break-inside:avoid}.n{font-size:14px}.c{font-size:32px;font-weight:800;letter-spacing:6px;margin:4px 0}.u{font-size:10px;color:#777}
-  /* ───── 마우스를 올리면 통통 튀어나오기 ───── */
-  .brand span,.mini-brand i,.friend .dot,.seg button,.qno{transition:transform .28s cubic-bezier(.34,1.7,.5,1),box-shadow .2s}
-  .brand span:hover,.brand span:active{transform:translateY(-14px) scale(1.15) rotate(-8deg)!important;box-shadow:0 10px 0 rgba(59,54,49,.08)}
-  .brand span:nth-child(even):hover,.brand span:nth-child(even):active{transform:translateY(-14px) scale(1.15) rotate(8deg)!important}
-  .mini-brand i:hover{transform:translateY(-5px) scale(1.18) rotate(-8deg)}
-  .mini-brand i:nth-child(even):hover{transform:translateY(-5px) scale(1.18) rotate(8deg)}
-  .friend .dot:hover{transform:scale(1.18) rotate(-10deg)}
-  .seg button:hover{transform:translateY(-4px) scale(1.07)}
-  .qno:hover{transform:scale(1.2) rotate(-10deg)}
-  .btn,.tabs button,.side .stabs button{transition:transform .2s cubic-bezier(.34,1.7,.5,1),box-shadow .2s}
-  .btn:not(:disabled):hover,.tabs button:hover{transform:translateY(-2px)}
-  .side .kpi div{transition:transform .25s cubic-bezier(.34,1.7,.5,1)}
-  .side .kpi div:hover{transform:translateY(-4px) scale(1.04)}
-  @media (prefers-reduced-motion: reduce){ .brand span,.mini-brand i,.friend .dot,.seg button,.qno,.btn,.tabs button,.side .kpi div{transition:none} }
-</style></head><body>'+document.getElementById('codes').outerHTML+'</body></html>');
+    w.document.write('<html><head><meta charset="utf-8"><title>7942 코드 카드</title><style>body{font-family:"Malgun Gothic",sans-serif;margin:10mm}.codes{display:grid;grid-template-columns:repeat(4,1fr)}.codecard{border:1px dashed #999;padding:14px 8px;text-align:center;page-break-inside:avoid}.n{font-size:14px}.c{font-size:32px;font-weight:800;letter-spacing:6px;margin:4px 0}.u{font-size:10px;color:#777}</style></head><body>'+document.getElementById('codes').outerHTML+'</body></html>');
     w.document.close(); w.focus(); setTimeout(function(){ w.print(); },300);
   };
 }
