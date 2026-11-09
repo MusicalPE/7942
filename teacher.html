@@ -205,7 +205,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.6.0', NEED_SHELL=1;
+var APP_VER='1.6.1', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -791,23 +791,47 @@ function aiPromptStudent(p){
 }
 
 function aiCacheKey(rid,sid){ return '7942_ai_'+(apiKey()||'demo')+'_'+rid+'_'+(sid||'class'); }
+/* 분석은 탭을 옮겨도 뒤에서 계속 — 진행 중인 일은 T.aiJobs 에 */
+T.aiJobs={};
 function runAI(rid,sid,box,force){
-  var ck=aiCacheKey(rid,sid), cached=!force&&lsGet(ck);
-  if(cached){ try{ var c=JSON.parse(cached); box.innerHTML=renderAI(c.res,!!sid)+'<p class="sub">'+esc(c.at)+'에 분석한 결과예요. <a href="#" class="aiRe">다시 분석</a></p>'; bindRe(); return; }catch(e){} }
+  var ck=aiCacheKey(rid,sid), job=T.aiJobs[ck];
+  box.dataset.ck=ck;
+  if(job&&job.running){ watch(job); return; }
+  var cached=!force&&lsGet(ck);
+  if(cached){ try{ showDone(JSON.parse(cached),false); return; }catch(e){} }
+  job=T.aiJobs[ck]={running:true,start:Date.now(),model:'',label:sid?(A0name(rid,sid)+' 학생 분석'):'학급 전체 분석'};
+  watch(job);
   var need=T.rounds.map(function(x){return x.id;}).filter(function(id,i,arr){ return (id===rid||arr[i+1]===rid)&&!T.data[id]; });
-  box.innerHTML='<div class="sub">자료를 준비하는 중...</div>';
   Promise.all(need.map(loadRound)).then(function(){
     var p=aiPayload(rid,sid);
-    box.innerHTML='<div class="sub" id="aiStep">AI가 읽고 있어요. 30초~1분쯤 걸려요.</div>';
-    return askAI(sid?aiPromptStudent(p):aiPromptClass(p),function(name){ var s=document.getElementById('aiStep'); if(s) s.textContent='AI('+name.replace('gemini-','')+')가 읽고 있어요. 30초~1분쯤 걸려요.'; })
-      .then(function(res){ res=deepShow(res,p.an.show);
-        var at=new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
-        lsSet(ck,JSON.stringify({res:res,at:at}));
-        box.innerHTML=renderAI(res,!!sid)+'<p class="sub">방금 분석한 결과예요. AI의 해석이니 참고로만 쓰고, 학생과 이야기하며 확인해 주세요. <a href="#" class="aiRe">다시 분석</a></p>'; bindRe(); });
-  }).catch(function(e){ box.innerHTML='<div class="err">'+esc(aiErrText(e))+'</div>'+keyBox(); bindKey(); });
-  function bindRe(){ var a=box.querySelector('.aiRe'); if(a) a.onclick=function(ev){ ev.preventDefault(); runAI(rid,sid,box,true); }; }
-  function bindKey(){ bindKeyBox(box,function(){ runAI(rid,sid,box,true); }); }
+    return askAI(sid?aiPromptStudent(p):aiPromptClass(p),function(name){ job.model=name; })
+      .then(function(res){
+        res=deepShow(res,p.an.show);
+        var c={res:res,at:new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),sec:Math.round((Date.now()-job.start)/1000),model:job.model};
+        lsSet(ck,JSON.stringify(c)); job.running=false; job.result=c;
+        var b=liveBox(); if(b) showDone(c,true,b); else toast(job.label+'이 끝났어요. [AI 분석]에서 볼 수 있어요');
+      });
+  }).catch(function(e){
+    job.running=false; delete T.aiJobs[ck];
+    var b=liveBox(); if(!b){ toast(job.label+' 중 문제가 생겼어요'); return; }
+    b.innerHTML='<div class="err">'+esc(aiErrText(e))+'</div>'+keyBox(); bindKeyBox(b,function(){ runAI(rid,sid,b,true); });
+  });
+  function liveBox(){ var b=document.getElementById('aiBox'); return b&&b.dataset.ck===ck?b:null; }
+  function watch(j){
+    box.innerHTML='<div class="sub" id="aiStep"></div>';
+    var tick=function(){ var el=document.getElementById('aiStep'), b=liveBox();
+      if(!el||!b||!j.running){ clearInterval(iv); return; }
+      el.textContent=(j.model?'AI('+j.model.replace('gemini-','')+')가':'AI가')+' 읽고 있어요 · '+Math.round((Date.now()-j.start)/1000)+'초 (보통 30초~1분). 다른 탭을 봐도 분석은 계속돼요.'; };
+    var iv=setInterval(tick,500); tick();
+  }
+  function showDone(c,fresh,b){
+    b=b||box;
+    var how=(c.sec?c.sec+'초':'')+(c.model?' · '+c.model.replace('gemini-',''):'');
+    b.innerHTML=renderAI(c.res,!!sid)+'<p class="sub">'+(fresh?'방금':esc(c.at)+'에')+' 분석한 결과예요'+(how?' ('+esc(how)+')':'')+'. AI의 해석이니 참고로만 쓰고, 학생과 이야기하며 확인해 주세요. <a href="#" class="aiRe">다시 분석</a></p>';
+    var a=b.querySelector('.aiRe'); if(a) a.onclick=function(ev){ ev.preventDefault(); runAI(rid,sid,b,true); };
+  }
 }
+function A0name(rid,sid){ var s=T.roster.filter(function(x){return x.id===sid;})[0]; return s?s.name:''; }
 function li(arr,fn){ arr=(arr||[]).filter(function(x){return x&&(typeof x!=='string'||x.trim());}); return arr.length?'<ul style="margin:4px 0 0;padding-left:20px">'+arr.map(function(x){return '<li style="margin:4px 0">'+fn(x)+'</li>';}).join('')+'</ul>':'<span class="sub">없음</span>'; }
 function para(t){ return t?'<p style="margin:4px 0;white-space:pre-wrap">'+esc(t)+'</p>':'<span class="sub">없음</span>'; }
 function renderAI(r,one){
@@ -853,6 +877,8 @@ function vAI(v){
   document.getElementById('aiClass').onclick=function(){ out.innerHTML='<h2>학급 전체</h2><div id="aiBox"></div>'; runAI(T.rid,null,document.getElementById('aiBox')); };
   document.getElementById('aiStu').onchange=function(){ T.aiSel=this.value; };
   document.getElementById('aiOne').onclick=function(){ if(!T.aiSel){ toast('학생을 골라 주세요'); return; } var s=A.st[T.aiSel].s; out.innerHTML='<h2>'+s.no+'. '+esc(s.name)+'</h2><div id="aiBox"></div>'; runAI(T.rid,T.aiSel,document.getElementById('aiBox')); };
+  if(!T.aiOpen){ var run=Object.keys(T.aiJobs).filter(function(k){ return T.aiJobs[k].running&&k.indexOf('_'+T.rid+'_')>0; })[0];
+    if(run){ var sidR=run.split('_'+T.rid+'_')[1]; T.aiOpen=sidR==='class'?'class':sidR; } }
   if(T.aiOpen){ var o=T.aiOpen; T.aiOpen=null; if(o==='class') document.getElementById('aiClass').click(); else { T.aiSel=o; document.getElementById('aiStu').value=o; document.getElementById('aiOne').click(); } }
 }
 
