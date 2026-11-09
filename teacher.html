@@ -111,6 +111,7 @@ function keyFrom(s){ s=String(s||'').trim(); var m=s.match(/\/s\/([A-Za-z0-9_-]{
 function lsSet(k,v){ try{ if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} }
 function lsGet(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
 function apiKey(){ var k=keyFrom(Q.get('k')); if(k){ lsSet(KEY_NAME,k); return k; } return keyFrom(lsGet(KEY_NAME)); }
+(function(){ var k=keyFrom(Q.get('k')); if(k){ lsSet(KEY_NAME,k); try{ history.replaceState(null,'',location.pathname+(DEMO_MODE?'?demo':'')); }catch(e){} Q.delete('k'); } })();
 function apiUrl(k){ k=k||apiKey(); return k?'https://script.google.com/macros/s/'+k+'/exec':''; }
 function studentLink(k){ var base=location.href.split('?')[0].split('#')[0].replace(/teacher\.html$/,''); return base+'?k='+(k||apiKey()); }
 function rawCall(url,fn,args){

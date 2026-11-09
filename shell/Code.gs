@@ -45,6 +45,12 @@ function defaultSettings_() {
 
 var SHELL_VER = 1;
 
+/** 처음 한 번 편집기에서 [실행] — 권한을 받고 시트를 준비합니다 */
+function start() {
+  ensureSheets_();
+  Logger.log('준비 끝! 이제 [배포] > [새 배포] > 웹 앱으로 배포하세요.');
+}
+
 /* ───────── 웹앱 진입 (API) ───────── */
 var API = {
   ping: function () { return { app: '7942', shell: SHELL_VER }; },
@@ -68,9 +74,25 @@ function doPost(e) {
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }
 
+var TEACHER_PAGE = 'https://musicalpe.github.io/7942/teacher.html';
+
+/** 껍데기 주소를 열면 7942 선생님 화면으로 넘어가면서 이 시트와 자동으로 연결 */
 function doGet() {
   ensureSheets_();
-  return ContentService.createTextOutput('7942 껍데기가 잘 연결되어 있어요. (껍데기 버전 ' + SHELL_VER + ')\n이 주소를 https://musicalpe.github.io/7942/teacher.html 첫 화면에 붙여 넣으세요.');
+  var url = String(ScriptApp.getService().getUrl() || '');
+  var m = url.match(/\/s\/([A-Za-z0-9_-]+)\/(exec|dev)/);
+  var target = TEACHER_PAGE + (m ? '?k=' + m[1] : '');
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
+    '<body style="font-family:sans-serif;text-align:center;padding-top:60px;background:#f5f5f2;color:#24272c">' +
+    '<div style="font-size:52px;font-weight:900;letter-spacing:4px;color:#2f6f5e">7942</div>' +
+    '<div style="color:#6a6f77;letter-spacing:6px;margin-bottom:24px">친구사이</div>' +
+    '<p>껍데기가 잘 연결되어 있어요. 선생님 화면으로 넘어갑니다.</p>' +
+    '<p><a href="' + target + '" target="_top" style="display:inline-block;background:#2f6f5e;color:#fff;padding:14px 26px;border-radius:12px;text-decoration:none;font-weight:700">7942 선생님 화면 열기</a></p>' +
+    '<p style="color:#888;font-size:13px">자동으로 넘어가지 않으면 위 단추를 눌러 주세요.</p>' +
+    '<script>try{window.top.location.href=' + JSON.stringify(target) + ';}catch(e){}</script></body></html>';
+  return HtmlService.createHtmlOutput(html).setTitle('7942 친구사이')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function onOpen() {
@@ -80,7 +102,7 @@ function onOpen() {
 }
 function setupFromMenu() {
   ensureSheets_();
-  SpreadsheetApp.getUi().alert('시트가 준비됐어요. 배포 > 새 배포 > 웹 앱으로 배포한 뒤, 나온 주소를 https://musicalpe.github.io/7942/teacher.html 에 붙여 넣으세요. 처음 비밀번호는 0000 입니다.');
+  try { SpreadsheetApp.getUi().alert('시트가 준비됐어요. 배포 > 새 배포 > 웹 앱으로 배포한 뒤, 나온 주소를 https://musicalpe.github.io/7942/teacher.html 에 붙여 넣으세요. 처음 비밀번호는 0000 입니다.'); } catch (e) { Logger.log('시트가 준비됐어요.'); }
 }
 
 /* ───────── 공통 도구 ───────── */
