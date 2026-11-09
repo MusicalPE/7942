@@ -87,6 +87,21 @@
   .tag{display:inline-block;background:#FFF1C9;color:#6B5310;font-size:14px;padding:5px 14px;border-radius:999px}
   .foot{text-align:center;color:#8A8179;font-size:13px;margin-top:18px}
   a{color:#2E6E58}
+
+  /* ───── 마우스를 올리면 통통 튀어나오기 ───── */
+  .brand span,.mini-brand i,.friend .dot,.seg button,.qno{transition:transform .28s cubic-bezier(.34,1.7,.5,1),box-shadow .2s}
+  .brand span:hover,.brand span:active{transform:translateY(-14px) scale(1.15) rotate(-8deg)!important;box-shadow:0 10px 0 rgba(59,54,49,.08)}
+  .brand span:nth-child(even):hover,.brand span:nth-child(even):active{transform:translateY(-14px) scale(1.15) rotate(8deg)!important}
+  .mini-brand i:hover{transform:translateY(-5px) scale(1.18) rotate(-8deg)}
+  .mini-brand i:nth-child(even):hover{transform:translateY(-5px) scale(1.18) rotate(8deg)}
+  .friend .dot:hover{transform:scale(1.18) rotate(-10deg)}
+  .seg button:hover{transform:translateY(-4px) scale(1.07)}
+  .qno:hover{transform:scale(1.2) rotate(-10deg)}
+  .btn,.tabs button,.side .stabs button{transition:transform .2s cubic-bezier(.34,1.7,.5,1),box-shadow .2s}
+  .btn:not(:disabled):hover,.tabs button:hover{transform:translateY(-2px)}
+  .side .kpi div{transition:transform .25s cubic-bezier(.34,1.7,.5,1)}
+  .side .kpi div:hover{transform:translateY(-4px) scale(1.04)}
+  @media (prefers-reduced-motion: reduce){ .brand span,.mini-brand i,.friend .dot,.seg button,.qno,.btn,.tabs button,.side .kpi div{transition:none} }
 </style>
 </head>
 <body>
@@ -102,7 +117,7 @@
 <script>
 var KEY_NAME='7942_key';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.4.0', NEED_SHELL=1;
+var APP_VER='1.4.1', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
