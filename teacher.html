@@ -182,6 +182,19 @@
   .side .kpi div{transition:transform .25s cubic-bezier(.34,1.7,.5,1)}
   .side .kpi div:hover{transform:translateY(-4px) scale(1.04)}
   @media (prefers-reduced-motion: reduce){ .brand span,.mini-brand i,.friend .dot,.seg button,.qno,.btn,.tabs button,.side .kpi div{transition:none} }
+
+  /* ───── 인쇄 (마지막에 두어 화면 꾸밈보다 앞서게) ───── */
+  @page{size:A4 landscape;margin:10mm}
+  @media print{
+    header,.tabs,.noprint,.side,.demo,#modal,.toast,.warnbar{display:none!important}
+    body{background:#fff!important} main{padding:0;max-width:none}
+    .split{display:block!important}
+    .card{box-shadow:none!important;border:0!important;padding:0 0 12px!important;break-inside:auto}
+    .mx-wrap{max-height:none!important;overflow:visible!important;border:0;background:#fff}
+    .mx th.cn,.mx th.rn,.mx th.corner{position:static!important}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .two{grid-template-columns:1fr 1fr}
+  }
 </style>
 </head>
 <body>
@@ -192,7 +205,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.4.2', NEED_SHELL=1;
+var APP_VER='1.4.3', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -355,7 +368,7 @@ function draw(){
     '<button class="btn sm main" id="newR">새 회차 만들기</button><span style="flex:1"></span>'+
     (IS_GAS?'':'<span class="demo">미리보기(지어낸 이름)</span>')+
     '<button class="btn sm" id="lnk">학생용 주소</button><a class="btn sm" href="'+esc(T.sheetUrl)+'" target="_blank" style="text-decoration:none">시트 열기</a></header>'+
-    '<main>'+(T.shellOld?'<div class="card" style="background:#fdecea;border-color:#f0b8ae">시트 껍데기가 예전 버전이에요. 설치 안내를 보고 Code.gs를 새로 붙여 넣은 뒤 [배포 관리]에서 새 버전으로 배포해 주세요.</div>':'')+(T.defaultPw?'<div class="card" style="background:#fff8e6;border-color:#f0d58a">처음 비밀번호(0000)를 쓰고 있어요. [설문 설정] 탭 아래에서 꼭 바꿔 주세요.</div>':'')+
+    '<main>'+(T.shellOld?'<div class="card warnbar" style="background:#fdecea;border-color:#f0b8ae">시트 껍데기가 예전 버전이에요. 설치 안내를 보고 Code.gs를 새로 붙여 넣은 뒤 [배포 관리]에서 새 버전으로 배포해 주세요.</div>':'')+(T.defaultPw?'<div class="card warnbar" style="background:#fff8e6;border-color:#f0d58a">처음 비밀번호(0000)를 쓰고 있어요. [설문 설정] 탭 아래에서 꼭 바꿔 주세요.</div>':'')+
     '<div class="tabs">'+TABS.map(function(t){ return '<button data-t="'+t[0]+'" class="'+(T.tab===t[0]?'on':'')+'">'+t[1]+'</button>'; }).join('')+'</div><div id="view"></div></main>';
   root.querySelectorAll('.tabs button').forEach(function(b){ b.onclick=function(){ if(T.tab==='roster'&&T.rosterDirty&&!confirm('명단에서 고친 내용을 아직 저장하지 않았어요. 그냥 넘어갈까요?')) return; T.tab=b.dataset.t; draw(); }; });
   var rs=document.getElementById('rsel'); if(rs) rs.onchange=function(){ T.rid=rs.value; T.sel=null; loadRound(T.rid).then(draw); };
