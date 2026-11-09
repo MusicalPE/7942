@@ -16,7 +16,7 @@ window.AI_CONFIG = {
     messagingSenderId: '599594794605',
     appId: '1:599594794605:web:6f592d8b55b20175ebc964'
   },
-  recaptchaSiteKey: '',
+  recaptchaSiteKey: '6LdBThcuAAAAADpJ8o0usZA3O6eUcBE-epNUzkag',
   models: ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-3.5-flash-lite'],
   trial: 3,
   freeShells: ['9d7cbe8d5dae1d1004a69ddc75164c6d000c6732647699433d5c56baf29f2323']
