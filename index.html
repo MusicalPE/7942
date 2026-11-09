@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7942 친구사이</title>
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  :root{
+    --bg:#f6f4ef; --card:#ffffff; --ink:#26292e; --sub:#6b7078; --line:#e3e0d8;
+    --main:#2f6f5e; --main-soft:#e3f0eb;
+    --o:#2f8a5b; --o-soft:#e2f3e9; --t:#8a8f98; --t-soft:#eff0f2; --x:#c2513f; --x-soft:#fbe7e3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:17px;line-height:1.55}
+  .wrap{max-width:720px;margin:0 auto;padding:20px 16px 120px}
+  h1{font-size:26px;margin:8px 0 4px;letter-spacing:-0.5px}
+  h2{font-size:20px;margin:0 0 6px}
+  .sub{color:var(--sub);font-size:15px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0}
+  .btn{appearance:none;border:0;border-radius:12px;padding:14px 20px;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn.main{background:var(--main);color:#fff}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn:disabled{opacity:.45;cursor:default}
+  textarea,select,input{font-family:inherit;font-size:17px;width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff;color:var(--ink)}
+  textarea{min-height:92px;resize:vertical}
+  .codebox{display:flex;gap:10px;justify-content:center;margin:18px 0}
+  .codebox input{width:60px;height:72px;text-align:center;font-size:34px;font-weight:700;padding:0}
+  .center{text-align:center}
+  .err{color:var(--x);font-weight:600;min-height:24px;margin-top:8px}
+  .steps{display:flex;gap:6px;margin:10px 0 4px}
+  .steps i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+  .steps i.on{background:var(--main)}
+  .q{font-weight:700;margin-bottom:8px}
+  .qno{display:inline-block;min-width:26px;height:26px;border-radius:13px;background:var(--main-soft);color:var(--main);text-align:center;font-size:14px;line-height:26px;margin-right:6px}
+  .legend{display:grid;grid-template-columns:1fr;gap:6px;font-size:15px}
+  .legend b{display:inline-block;width:28px;text-align:center;font-size:19px}
+  .friend{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .friend:last-child{border-bottom:0}
+  .friend .nm{flex:1;font-weight:700;font-size:18px}
+  .friend.miss .nm{color:var(--x)}
+  .seg{display:flex;gap:6px}
+  .seg button{width:64px;height:54px;border-radius:12px;border:2px solid var(--line);background:#fff;font-size:24px;font-weight:700;cursor:pointer;color:var(--sub);font-family:inherit;line-height:1}
+  .seg button small{display:block;font-size:11px;font-weight:600;margin-top:3px}
+  .seg button.on.o{border-color:var(--o);background:var(--o-soft);color:var(--o)}
+  .seg button.on.t{border-color:var(--t);background:var(--t-soft);color:#4b5058}
+  .seg button.on.x{border-color:var(--x);background:var(--x-soft);color:var(--x)}
+  .slot{border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0;background:#fcfbf8}
+  .slot label{font-weight:700;display:block;margin-bottom:6px}
+  .slot select{margin-bottom:8px}
+  .bar{position:fixed;left:0;right:0;bottom:0;background:rgba(246,244,239,.96);border-top:1px solid var(--line);padding:12px 16px}
+  .bar .in{max-width:720px;margin:0 auto;display:flex;gap:10px}
+  .bar .in .btn{flex:1}
+  .count{font-size:15px;color:var(--sub);margin:4px 0 0}
+  .hide{display:none!important}
+  .modal{position:fixed;inset:0;background:rgba(20,22,26,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+  .modal .box{background:#fff;border-radius:16px;padding:22px;max-width:420px;width:100%}
+  .modal .row{display:flex;gap:10px;margin-top:18px}
+  .modal .row .btn{flex:1}
+  .done{font-size:22px;font-weight:800;margin:30px 0 10px}
+  .review dt{font-weight:700;margin-top:10px}
+  .review dd{margin:2px 0 0;color:var(--sub);white-space:pre-wrap}
+  .brand{font-size:56px;font-weight:900;letter-spacing:4px;color:var(--main);line-height:1}
+  .brand-sub{font-size:16px;color:var(--sub);letter-spacing:6px;margin-top:6px}
+  .foot{text-align:center;color:#a3a7ad;font-size:12px;margin-top:18px}
+  .demo{background:#fff3cd;border:1px solid #f0d58a;border-radius:10px;padding:8px 12px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="bar hide" id="bar"><div class="in">
+  <button class="btn ghost" id="prevBtn">이전</button>
+  <button class="btn main" id="nextBtn">다음</button>
+</div></div>
+<div class="modal hide" id="modal"><div class="box" id="modalBox"></div></div>
+
+<script>
+var KEY_NAME='7942_key';
+/* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
+var APP_VER='1.0.0', NEED_SHELL=1;
+var Q=new URLSearchParams(location.search);
+var DEMO_MODE=Q.has('demo');
+var IS_GAS=!DEMO_MODE;
+function keyFrom(s){ s=String(s||'').trim(); var m=s.match(/\/s\/([A-Za-z0-9_-]{20,})\/(exec|dev)/); if(m) return m[1]; return /^[A-Za-z0-9_-]{20,}$/.test(s)?s:''; }
+function lsSet(k,v){ try{ if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} }
+function lsGet(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
+function apiKey(){ var k=keyFrom(Q.get('k')); if(k){ lsSet(KEY_NAME,k); return k; } return keyFrom(lsGet(KEY_NAME)); }
+function apiUrl(k){ k=k||apiKey(); return k?'https://script.google.com/macros/s/'+k+'/exec':''; }
+function studentLink(k){ var base=location.href.split('?')[0].split('#')[0].replace(/teacher\.html$/,''); return base+'?k='+(k||apiKey()); }
+function rawCall(url,fn,args){
+  return fetch(url,{method:'POST',body:JSON.stringify({fn:fn,args:args||[]})})
+    .then(function(r){ return r.text(); },function(){ throw new Error('인터넷 연결이나 시트 주소를 확인해 주세요.'); })
+    .then(function(t){ var j; try{ j=JSON.parse(t); }catch(e){ throw new Error('시트 껍데기에서 답이 오지 않아요. 웹 앱 배포의 "액세스 권한"이 "모든 사용자"인지 확인해 주세요.'); }
+      if(!j.ok) throw new Error(j.error); return j.data; });
+}
+function call(fn){
+  var args=[].slice.call(arguments,1);
+  if(DEMO_MODE) return new Promise(function(res,rej){ setTimeout(function(){ try{ res(JSON.parse(JSON.stringify(DEMO[fn].apply(null,args)))); }catch(e){ rej(e); } },200); });
+  var u=apiUrl(); if(!u) return Promise.reject(new Error('연결된 시트가 없어요.'));
+  return rawCall(u,fn,args);
+}
+var DEMO = {
+  studentLogin:function(code){
+    if(!/^\d{4}$/.test(code)) throw new Error('코드가 맞지 않아요. 선생님께 받은 4자리 숫자를 다시 확인해 주세요.');
+    var names=[['김하늘','여'],['박도윤','남'],['이서아','여'],['최민준','남'],['정하린','여'],['강지호','남'],['윤소율','여'],['장시우','남'],['한예린','여'],['오준서','남'],['신다은','여'],['임건우','남']];
+    return {token:'demo',rid:'R1',name:'홍길동',roundName:'1회차(5월)',submitted:false,
+      friends:names.map(function(n,i){return {id:'S'+i,name:n[0],gender:n[1]};}),
+      settings:{title:'우리반 친구들은?!',intro:'우리 반 친구들과 함께 지내면서 느낀 점을 솔직하게 써 보세요. 여러분이 쓴 내용은 선생님만 볼 수 있어요.',
+        questions:['우리 반은 "나"에게 어떤 반인가요?','나는 우리 반 친구들에게 어떤 아이일까요?','지금까지 지내면서 좋았던 점은?','지금까지 지내면서 어려웠던 점은?','우리 반에게 바라는 점은 무엇인가요?'],
+        requireAllRelations:true,praiseMode:'gender',praiseMale:1,praiseFemale:1,praiseAny:2,praiseRequired:true,
+        praiseQuestion:'이 친구가 친구 관계에서 칭찬받을 점은 무엇인가요? 이 친구와 친해지고 싶은 이유는?',
+        conflictMax:2,conflictQuestion:'이 친구가 친구 관계에서 고쳐야 할 점은 무엇인가요? 이 친구와 사이가 좋지 않은 이유는?',askTeacherMessage:true}};
+  },
+  studentSubmit:function(){ return true; }
+};
+
+/* ───── 상태 ───── */
+var S = { info:null, step:0, steps:[], data:null };
+var app = document.getElementById('app');
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function draftKey(){ return 'friends_draft_'+S.info.rid+'_'+S.code; }
+function saveDraft(){ try{ localStorage.setItem(draftKey(), JSON.stringify(S.data)); }catch(e){} }
+function loadDraft(){ try{ var d=localStorage.getItem(draftKey()); return d?JSON.parse(d):null; }catch(e){ return null; } }
+function clearDraft(){ try{ localStorage.removeItem(draftKey()); }catch(e){} }
+function bar(show){ document.getElementById('bar').classList.toggle('hide',!show); }
+
+/* ───── 1. 코드 넣기 ───── */
+function showLogin(msg){
+  bar(false);
+  if(IS_GAS && !apiKey()){
+    app.innerHTML='<div class="card center" style="margin-top:60px"><div class="brand">7942</div><div class="brand-sub">친구사이</div>'+
+      '<p class="sub" style="margin-top:16px">선생님이 알려 준 주소나 QR 코드로 들어와 주세요.</p>'+
+      '<p class="sub"><a href="?demo">어떻게 생겼는지 미리보기</a> · <a href="teacher.html">선생님 화면</a></p></div><div class="foot">만든이 음악적체육인</div>';
+    return;
+  }
+  app.innerHTML =
+    (IS_GAS?'':'<div class="demo">미리보기 화면입니다. 아무 4자리 숫자나 넣어 보세요.</div>')+
+    '<div class="card center" style="margin-top:40px">'+
+    '<div class="brand">7942</div><div class="brand-sub">친구사이</div><div class="sub" style="margin-top:12px">선생님께 받은 4자리 코드를 넣어 주세요.</div>'+
+    '<div class="codebox">'+[0,1,2,3].map(function(i){return '<input inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" data-i="'+i+'">';}).join('')+'</div>'+
+    '<button class="btn main" id="goBtn" style="width:100%">들어가기</button>'+
+    '<div class="err" id="err">'+esc(msg||'')+'</div></div><div class="foot">만든이 음악적체육인</div>';
+  var ins = app.querySelectorAll('.codebox input');
+  ins.forEach(function(el,i){
+    el.addEventListener('input',function(){ el.value=el.value.replace(/\D/g,'').slice(-1); if(el.value&&i<3) ins[i+1].focus(); if(i===3&&el.value) go(); });
+    el.addEventListener('keydown',function(e){ if(e.key==='Backspace'&&!el.value&&i>0) ins[i-1].focus(); if(e.key==='Enter') go(); });
+    el.addEventListener('paste',function(e){ var t=(e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,4); if(t.length===4){ e.preventDefault(); t.split('').forEach(function(c,j){ins[j].value=c;}); go(); } });
+  });
+  ins[0].focus();
+  document.getElementById('goBtn').onclick=go;
+  function go(){
+    var code=Array.prototype.map.call(ins,function(x){return x.value;}).join('');
+    if(code.length<4){ document.getElementById('err').textContent='4자리를 모두 넣어 주세요.'; return; }
+    var b=document.getElementById('goBtn'); b.disabled=true; b.textContent='확인하는 중...';
+    call('studentLogin',code).then(function(info){ S.code=code; S.info=info; confirmMe(); })
+      .catch(function(e){ showLogin(e.message||e); });
+  }
+}
+
+/* ───── 2. 본인 확인 ───── */
+function confirmMe(){
+  var info=S.info;
+  if(info.submitted){
+    app.innerHTML='<div class="card center" style="margin-top:40px"><div class="done">이미 제출했어요</div><div class="sub">'+esc(info.roundName)+' 설문을 벌써 냈어요. 고칠 것이 있으면 선생님께 말씀드려 주세요.</div></div>';
+    return;
+  }
+  app.innerHTML='<div class="card center" style="margin-top:40px"><div class="sub">'+esc(info.roundName)+'</div>'+
+    '<h1>'+esc(info.name)+' 학생이 맞나요?</h1><div class="sub">내 이름이 아니면 코드를 다시 확인해 주세요.</div>'+
+    '<div style="display:flex;gap:10px;margin-top:20px"><button class="btn ghost" style="flex:1" id="noBtn">아니요</button><button class="btn main" style="flex:1" id="yesBtn">네, 맞아요</button></div></div>';
+  document.getElementById('noBtn').onclick=function(){ showLogin(); };
+  document.getElementById('yesBtn').onclick=startSurvey;
+}
+
+/* ───── 3. 설문 ───── */
+function startSurvey(){
+  var st=S.info.settings;
+  var d=loadDraft();
+  S.data = d || { answers: st.questions.map(function(){return '';}), rel:{}, praise:[], conflict:[], message:'' };
+  S.steps=[];
+  if(st.questions.length) S.steps.push('questions');
+  S.steps.push('relations');
+  if(praiseSlots().length) S.steps.push('praise');
+  if(Number(st.conflictMax)>0) S.steps.push('conflict');
+  if(st.askTeacherMessage) S.steps.push('message');
+  S.steps.push('review');
+  S.step=0;
+  render();
+}
+
+function praiseSlots(){
+  var st=S.info.settings, out=[];
+  if(st.praiseMode==='gender'){
+    for(var i=0;i<Number(st.praiseMale||0);i++) out.push({slot:'남'+(i+1),label:'남자 친구'+(st.praiseMale>1?' '+(i+1):''),g:'남'});
+    for(var j=0;j<Number(st.praiseFemale||0);j++) out.push({slot:'여'+(j+1),label:'여자 친구'+(st.praiseFemale>1?' '+(j+1):''),g:'여'});
+  } else if(st.praiseMode==='any'){
+    for(var k=0;k<Number(st.praiseAny||0);k++) out.push({slot:'친구'+(k+1),label:'친구 '+(k+1),g:''});
+  }
+  return out;
+}
+
+function render(){
+  var st=S.info.settings, kind=S.steps[S.step];
+  var head='<div class="sub">'+esc(S.info.roundName)+' · '+esc(S.info.name)+'</div><h1>'+esc(st.title)+'</h1>'+
+    '<div class="steps">'+S.steps.map(function(_,i){return '<i class="'+(i<=S.step?'on':'')+'"></i>';}).join('')+'</div>';
+  var body='';
+  if(kind==='questions'){
+    body='<div class="card"><div class="sub">'+esc(st.intro)+'</div></div>'+
+      st.questions.map(function(q,i){ return '<div class="card"><div class="q"><span class="qno">'+(i+1)+'</span>'+esc(q)+'</div><textarea data-a="'+i+'" placeholder="여기에 적어 주세요">'+esc(S.data.answers[i]||'')+'</textarea></div>'; }).join('');
+  }
+  if(kind==='relations'){
+    var fr=S.info.friends;
+    body='<div class="card"><h2>나와 우리 반 친구와의 관계</h2><div class="legend">'+
+      '<div><b style="color:var(--o)">○</b> 함께 있고 싶다! 친하다! 호감이 있다!</div>'+
+      '<div><b style="color:var(--t)">△</b> 그저 그렇다. 옆에 있어도 그만, 없어도 그만</div>'+
+      '<div><b style="color:var(--x)">X</b> 이 친구와는 사이가 안 좋다. 좋지 않은 일이나 감정이 있다!</div></div>'+
+      '<div class="count" id="relCount"></div></div>'+
+      '<div class="card">'+fr.map(function(f){ var v=S.data.rel[f.id]||'';
+        return '<div class="friend" data-id="'+f.id+'"><div class="nm">'+esc(f.name)+'</div><div class="seg">'+
+        [['o','○','친해요'],['t','△','보통'],['x','X','안 좋아요']].map(function(b){ return '<button class="'+b[0]+(v===b[0]?' on':'')+'" data-v="'+b[0]+'">'+b[1]+'<small>'+b[2]+'</small></button>'; }).join('')+
+        '</div></div>'; }).join('')+'</div>';
+  }
+  if(kind==='praise'){
+    var slots=praiseSlots();
+    body='<div class="card"><h2>칭찬하고 싶은 친구</h2><div class="sub">친해지고 싶거나 칭찬하고 싶은 친구를 고르고 그 이유를 적어 보세요.'+(st.praiseRequired?'':' (없으면 비워 두어도 돼요)')+'</div></div>'+
+      slots.map(function(s,i){ var cur=S.data.praise[i]||{};
+        var list=S.info.friends.filter(function(f){ return !s.g || !f.gender || f.gender===s.g; });
+        return '<div class="slot"><label>'+esc(s.label)+'</label><select data-p="'+i+'"><option value="">친구를 골라 주세요</option>'+
+          list.map(function(f){ return '<option value="'+f.id+'"'+(cur.id===f.id?' selected':'')+'>'+esc(f.name)+'</option>'; }).join('')+
+          '</select><textarea data-pr="'+i+'" placeholder="'+esc(st.praiseQuestion)+'">'+esc(cur.reason||'')+'</textarea></div>'; }).join('');
+  }
+  if(kind==='conflict'){
+    var n=Number(st.conflictMax);
+    body='<div class="card"><h2>사이가 좋지 않은 친구</h2><div class="sub">없으면 비워 두어도 돼요. 있다면 '+n+'명까지 고르고 그 이유를 적어 보세요. 선생님만 봐요.</div></div>';
+    for(var i=0;i<n;i++){ var c=S.data.conflict[i]||{};
+      body+='<div class="slot"><label>친구 '+(i+1)+'</label><select data-c="'+i+'"><option value="">(없음)</option>'+
+        S.info.friends.map(function(f){ return '<option value="'+f.id+'"'+(c.id===f.id?' selected':'')+'>'+esc(f.name)+'</option>'; }).join('')+
+        '</select><textarea data-cr="'+i+'" placeholder="'+esc(st.conflictQuestion)+'">'+esc(c.reason||'')+'</textarea></div>'; }
+  }
+  if(kind==='message'){
+    body='<div class="card"><h2>선생님에게 하고 싶은 말 한마디</h2><div class="sub">어떤 말이든 좋아요!</div><textarea id="msg" style="margin-top:10px;min-height:130px">'+esc(S.data.message)+'</textarea></div>';
+  }
+  if(kind==='review'){
+    var nameOf={}; S.info.friends.forEach(function(f){ nameOf[f.id]=f.name; });
+    function names(v){ return S.info.friends.filter(function(f){return S.data.rel[f.id]===v;}).map(function(f){return f.name;}).join(', ')||'없음'; }
+    body='<div class="card"><h2>마지막으로 확인해요</h2><div class="sub">제출하면 고칠 수 없어요. 고칠 곳이 있으면 [이전]을 눌러 주세요.</div><dl class="review">'+
+      st.questions.map(function(q,i){ return '<dt>'+(i+1)+'. '+esc(q)+'</dt><dd>'+esc(S.data.answers[i]||'(비어 있음)')+'</dd>'; }).join('')+
+      '<dt>○ 친해요</dt><dd>'+esc(names('o'))+'</dd><dt>X 사이가 안 좋아요</dt><dd>'+esc(names('x'))+'</dd>'+
+      (S.steps.indexOf('praise')>=0?'<dt>칭찬하고 싶은 친구</dt><dd>'+esc(S.data.praise.filter(function(p){return p&&p.id;}).map(function(p){return nameOf[p.id];}).join(', ')||'없음')+'</dd>':'')+
+      (S.steps.indexOf('conflict')>=0?'<dt>사이가 좋지 않은 친구</dt><dd>'+esc(S.data.conflict.filter(function(p){return p&&p.id;}).map(function(p){return nameOf[p.id];}).join(', ')||'없음')+'</dd>':'')+
+      '</dl></div>';
+  }
+  app.innerHTML=head+body+'<div class="err" id="err"></div>';
+  bindStep(kind);
+  bar(true);
+  document.getElementById('prevBtn').style.visibility=S.step===0?'hidden':'visible';
+  document.getElementById('nextBtn').textContent=kind==='review'?'제출하기':'다음';
+  window.scrollTo(0,0);
+}
+
+function bindStep(kind){
+  app.querySelectorAll('textarea[data-a]').forEach(function(t){ t.oninput=function(){ S.data.answers[+t.dataset.a]=t.value; saveDraft(); }; });
+  if(kind==='relations'){
+    app.querySelectorAll('.friend').forEach(function(row){
+      row.querySelectorAll('button').forEach(function(b){ b.onclick=function(){
+        S.data.rel[row.dataset.id]=b.dataset.v; saveDraft();
+        row.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on',x===b); });
+        row.classList.remove('miss'); relCount();
+      }; });
+    });
+    relCount();
+  }
+  app.querySelectorAll('select[data-p]').forEach(function(s){ s.onchange=function(){ var i=+s.dataset.p; S.data.praise[i]=S.data.praise[i]||{}; S.data.praise[i].id=s.value; S.data.praise[i].slot=praiseSlots()[i].slot; saveDraft(); }; });
+  app.querySelectorAll('textarea[data-pr]').forEach(function(t){ t.oninput=function(){ var i=+t.dataset.pr; S.data.praise[i]=S.data.praise[i]||{}; S.data.praise[i].reason=t.value; S.data.praise[i].slot=praiseSlots()[i].slot; saveDraft(); }; });
+  app.querySelectorAll('select[data-c]').forEach(function(s){ s.onchange=function(){ var i=+s.dataset.c; S.data.conflict[i]=S.data.conflict[i]||{}; S.data.conflict[i].id=s.value; saveDraft(); }; });
+  app.querySelectorAll('textarea[data-cr]').forEach(function(t){ t.oninput=function(){ var i=+t.dataset.cr; S.data.conflict[i]=S.data.conflict[i]||{}; S.data.conflict[i].reason=t.value; saveDraft(); }; });
+  var m=document.getElementById('msg'); if(m) m.oninput=function(){ S.data.message=m.value; saveDraft(); };
+}
+
+function relCount(){
+  var left=S.info.friends.filter(function(f){return !S.data.rel[f.id];}).length;
+  var el=document.getElementById('relCount');
+  if(el) el.textContent= left? '아직 표시하지 않은 친구: '+left+'명' : '모든 친구를 표시했어요.';
+}
+
+function checkStep(kind){
+  var st=S.info.settings;
+  if(kind==='relations' && st.requireAllRelations){
+    var miss=S.info.friends.filter(function(f){return !S.data.rel[f.id];});
+    if(miss.length){
+      miss.forEach(function(f){ var r=app.querySelector('.friend[data-id="'+f.id+'"]'); if(r) r.classList.add('miss'); });
+      var first=app.querySelector('.friend.miss'); if(first) first.scrollIntoView({behavior:'smooth',block:'center'});
+      return '모든 친구에게 ○, △, X 중 하나를 표시해 주세요. (빨간 이름 '+miss.length+'명)';
+    }
+  }
+  if(kind==='praise'){
+    var slots=praiseSlots(), ids={};
+    for(var i=0;i<slots.length;i++){
+      var p=S.data.praise[i]||{};
+      if(st.praiseRequired && !p.id) return slots[i].label+'를 골라 주세요.';
+      if(p.id){ if(ids[p.id]) return '같은 친구를 두 번 고를 수 없어요.'; ids[p.id]=1; }
+    }
+  }
+  if(kind==='conflict'){
+    var seen={};
+    for(var j=0;j<S.data.conflict.length;j++){ var c=S.data.conflict[j]; if(c&&c.id){ if(seen[c.id]) return '같은 친구를 두 번 고를 수 없어요.'; seen[c.id]=1; } }
+  }
+  return '';
+}
+
+document.getElementById('prevBtn').onclick=function(){ if(S.step>0){ S.step--; render(); } };
+document.getElementById('nextBtn').onclick=function(){
+  var kind=S.steps[S.step], msg=checkStep(kind);
+  if(msg){ document.getElementById('err').textContent=msg; return; }
+  if(kind==='review'){ askSubmit(); return; }
+  S.step++; render();
+};
+
+function askSubmit(){
+  var md=document.getElementById('modal');
+  document.getElementById('modalBox').innerHTML='<h2>정말 제출할까요?</h2><div class="sub">제출하면 다시 고칠 수 없어요.</div><div class="row"><button class="btn ghost" id="mNo">조금 더 볼게요</button><button class="btn main" id="mYes">제출하기</button></div>';
+  md.classList.remove('hide');
+  document.getElementById('mNo').onclick=function(){ md.classList.add('hide'); };
+  document.getElementById('mYes').onclick=function(){
+    var b=this; b.disabled=true; b.textContent='보내는 중...';
+    var payload={ answers:S.data.answers, rel:S.data.rel,
+      praise:(S.data.praise||[]).filter(function(p){return p&&p.id;}),
+      conflict:(S.data.conflict||[]).filter(function(p){return p&&p.id;}), message:S.data.message };
+    call('studentSubmit',S.info.token,payload).then(function(){
+      clearDraft(); md.classList.add('hide'); bar(false);
+      app.innerHTML='<div class="card center" style="margin-top:40px"><div class="done">제출했어요. 고마워요!</div><div class="sub">솔직하게 적어 준 마음은 선생님만 보고, 더 좋은 우리 반을 만드는 데 쓸게요.</div></div>';
+    }).catch(function(e){
+      md.classList.add('hide');
+      var msg=e.message||String(e);
+      if(/다시 코드/.test(msg)){ showLogin(msg); } else { document.getElementById('err').textContent=msg; }
+    });
+  };
+}
+
+showLogin();
+</script>
+</body>
+</html>
