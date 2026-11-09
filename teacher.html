@@ -78,7 +78,7 @@
   .codecard .n{font-size:14px} .codecard .c{font-size:32px;font-weight:800;letter-spacing:6px;margin:4px 0}
   .codecard .u{font-size:10px;color:#777;word-break:break-all}
   .modal{position:fixed;inset:0;background:rgba(20,22,26,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:30}
-  .modal .box{background:#fff;border-radius:14px;padding:20px;max-width:440px;width:100%}
+  .modal .box{background:#fff;border-radius:14px;padding:20px;max-width:460px;width:100%;max-height:92vh;overflow:auto}
   .modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
   .brand{font-size:52px;font-weight:900;letter-spacing:4px;color:var(--main);line-height:1}
   .brand-sub{font-size:14px;color:var(--sub);letter-spacing:5px;margin-top:6px}
@@ -99,6 +99,7 @@
 <div id="root"></div>
 <div class="modal hide" id="modal"><div class="box" id="modalBox"></div></div>
 
+<script src="config.js"></script>
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
@@ -187,7 +188,7 @@ function connectView(msg){
    '<h2 style="margin-top:18px">내 시트 연결하기</h2><div class="sub">껍데기 시트를 웹 앱으로 배포하고 나온 주소(https://script.google.com/macros/s/.../exec)를 붙여 넣으세요. 이 기기에 기억되어 다음부터는 바로 열려요.</div>'+
    '<input id="wurl" placeholder="https://script.google.com/macros/s/..../exec" style="width:100%;margin:10px 0;padding:10px">'+
    '<button class="btn main" id="cn" style="width:100%;padding:10px">연결하기</button><div class="err" style="margin-top:8px">'+esc(msg||'')+'</div>'+
-   '<p class="sub" style="margin-top:14px">아직 껍데기가 없다면 <a href="https://github.com/MusicalPE/7942#readme" target="_blank">설치 안내</a>를 보세요. <a href="?demo">미리보기로 둘러보기</a></p></div><div class="foot">만든이 음악적체육인</div></main>';
+   '<div class="card" style="background:#f7f6f2;margin:14px 0 0"><b>아직 껍데기 시트가 없다면</b><ol class="sub" style="margin:6px 0 0;padding-left:18px"><li><a href="https://docs.google.com/spreadsheets/d/1x-yX5q_4KDUINBTxxXw7Oc7cbsWddgakaVzgkcQiaFs/copy" target="_blank">껍데기 시트 사본 만들기</a>를 누르고 [사본 만들기]</li><li>사본에서 [확장 프로그램] > [Apps Script] > [배포] > [새 배포] > 웹 앱 (실행: 나, 액세스: 모든 사용자)</li><li>나온 주소를 위 칸에 붙여 넣기</li></ol><p class="sub" style="margin:8px 0 0"><a href="https://github.com/MusicalPE/7942#readme" target="_blank">자세한 설치 안내</a> · <a href="?demo">미리보기로 둘러보기</a></p></div></div><div class="foot">만든이 음악적체육인</div></main>';
   var w=document.getElementById('wurl'); w.focus();
   w.onkeydown=function(e){ if(e.key==='Enter') go(); };
   document.getElementById('cn').onclick=go;
@@ -272,10 +273,10 @@ function draw(){
     call('updateRound',T.token,T.rid,{status:r.status==='진행중'?'마감':'진행중'}).then(function(x){ T.rounds=x; draw(); toast(r.status==='진행중'?'마감했어요. 학생이 더 이상 들어올 수 없어요.':'다시 열었어요. 다른 회차는 마감됐어요.'); }).catch(fail); };
   document.getElementById('newR').onclick=newRound;
   document.getElementById('lnk').onclick=function(){
-    modal('<h2>학생용 주소</h2><div class="sub">학생 기기(크롬북·태블릿)에서 이 주소나 QR로 한 번 들어오면, 그 기기는 다음부터 7942 주소만 열어도 우리 반으로 들어와요.</div><div id="qr" class="center" style="margin:12px 0;min-height:40px"></div><input id="u" style="width:100%" readonly value="'+esc(T.url)+'">',
+    modal('<h2>학생용 주소</h2><div id="cc"></div><div class="sub" style="margin-top:12px"><b>QR · 긴 주소</b> 학생 기기에서 이 주소나 QR로 한 번 들어오면, 그 기기는 다음부터 7942 주소만 열어도 우리 반으로 들어와요.</div><div id="qr" class="center" style="margin:12px 0;min-height:40px"></div><input id="u" style="width:100%" readonly value="'+esc(T.url)+'">',
       [['닫기'],['QR 크게 보기',function(){ bigQR(); return false; }],['복사하기',function(){ var u=document.getElementById('u'); u.select(); try{ navigator.clipboard.writeText(u.value); }catch(e){ document.execCommand('copy'); } toast('복사했어요'); },'main']]);
   };
-  document.getElementById('lnk').addEventListener('click',function(){ drawQR(document.getElementById('qr'),T.url,5); });
+  document.getElementById('lnk').addEventListener('click',function(){ drawQR(document.getElementById('qr'),T.url,5); fillClassCode(); });
   var v=document.getElementById('view');
   if(!T.rounds.length && ['status','matrix','groups','student','answers','compare','settings'].indexOf(T.tab)>=0){
     v.innerHTML='<div class="card center"><h2>첫 회차를 만들어 주세요</h2><div class="sub">학생 명단을 넣고, 위의 [새 회차 만들기]를 누르면 설문이 열려요.</div></div>'; return;
@@ -283,6 +284,33 @@ function draw(){
   ({status:vStatus,matrix:vMatrix,groups:vGroups,student:vStudent,answers:vAnswers,compare:vCompare,settings:vSettings,roster:vRoster})[T.tab](v);
 }
 
+var REG=(window.REGISTRY_URL||'').trim();
+function shortAddr(){ return location.href.split('?')[0].split('#')[0].replace(/teacher\.html$/,'').replace(/^https?:\/\//,'').replace(/\/$/,''); }
+function fillClassCode(){
+  var el=document.getElementById('cc'); if(!el) return;
+  if(IS_GAS&&!REG){ el.innerHTML=''; return; }
+  el.innerHTML='<div class="card" style="background:#f7f6f2;margin:10px 0 0"><span class="sub">반 코드를 확인하는 중...</span></div>';
+  var get = IS_GAS ? rawCall(REG,'lookup',[apiKey()]) : Promise.resolve(T.demoCC||'');
+  get.then(show).catch(function(e){ el.innerHTML='<div class="card" style="background:#f7f6f2;margin:10px 0 0"><span class="err">'+esc(e.message||e)+'</span></div>'; });
+  function show(code){
+    if(!code){
+      el.innerHTML='<div class="card" style="background:#f7f6f2;margin:10px 0 0"><b>반 코드</b><div class="sub">안내장에 주소를 손으로 적어 줄 때 편해요. 학생은 7942 주소에 들어가 반 코드 5자리를 넣으면 우리 반으로 들어와요.</div><button class="btn main sm" id="ccMake" style="margin-top:8px">반 코드 만들기</button></div>';
+      document.getElementById('ccMake').onclick=function(){ this.disabled=true; this.textContent='만드는 중...';
+        (IS_GAS?rawCall(REG,'register',[apiKey()]):Promise.resolve(T.demoCC='48271')).then(show).catch(function(e){ toast(e.message||e); fillClassCode(); }); };
+      return;
+    }
+    var line=shortAddr()+'  반 코드 '+code;
+    el.innerHTML='<div class="card" style="background:#f7f6f2;margin:10px 0 0"><b>반 코드</b><div style="font-size:38px;font-weight:900;letter-spacing:8px;color:var(--main);margin:2px 0">'+esc(code)+'</div>'+
+      '<div class="sub">안내장에는 이렇게 적어 주세요</div><div style="font-size:16px;font-weight:700;margin:4px 0 8px">'+esc(shortAddr())+' &nbsp;·&nbsp; 반 코드 '+esc(code)+'</div>'+
+      '<button class="btn sm" id="ccCopy">안내 문구 복사</button> <button class="btn sm warn" id="ccNew">반 코드 바꾸기</button></div>';
+    document.getElementById('ccCopy').onclick=function(){ try{ navigator.clipboard.writeText(line); toast('복사했어요'); }catch(e){ toast(line); } };
+    document.getElementById('ccNew').onclick=function(){
+      var b=this; if(b.dataset.sure!=='1'){ b.dataset.sure='1'; b.textContent='정말 바꿀까요? (지금 코드는 못 쓰게 돼요)'; return; }
+      b.disabled=true;
+      (IS_GAS?rawCall(REG,'renew',[apiKey()]):Promise.resolve(T.demoCC=String(10000+Math.floor(Math.random()*90000)))).then(function(c){ show(c); toast('반 코드를 바꿨어요'); }).catch(function(e){ toast(e.message||e); });
+    };
+  }
+}
 function loadQRLib(){
   if(window.qrcode) return Promise.resolve();
   return new Promise(function(res,rej){ var s=document.createElement('script'); s.src='qrcode.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
