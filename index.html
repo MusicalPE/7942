@@ -7,69 +7,90 @@
 <title>7942 친구사이</title>
 <link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
 <style>
   :root{
-    --bg:#f6f4ef; --card:#ffffff; --ink:#26292e; --sub:#6b7078; --line:#e3e0d8;
-    --main:#2f6f5e; --main-soft:#e3f0eb;
-    --o:#2f8a5b; --o-soft:#e2f3e9; --t:#8a8f98; --t-soft:#eff0f2; --x:#c2513f; --x-soft:#fbe7e3;
+    --bg:#FFF8EE; --card:#ffffff; --ink:#3B3631; --sub:#6F675F; --line:#EFE5D6; --shadow:#F0E4D2;
+    --main:#3E9A7A; --main-dark:#2B735A; --main-soft:#DDF3E9;
+    --o:#1F5240; --o-soft:#DDF3E9; --o-line:#3E9A7A;
+    --t:#5C4510; --t-soft:#FFF1C9; --t-line:#D9A928;
+    --x:#B4482F; --x-soft:#FFE2DA; --x-line:#D46A52;
+    --round:'Jua','Gowun Dodum',sans-serif;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:17px;line-height:1.55}
-  .wrap{max-width:720px;margin:0 auto;padding:20px 16px 120px}
-  h1{font-size:26px;margin:8px 0 4px;letter-spacing:-0.5px}
-  h2{font-size:20px;margin:0 0 6px}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:17px;line-height:1.55}
+  .wrap{max-width:720px;margin:0 auto;padding:20px 16px 130px;position:relative}
+  .blob{position:fixed;border-radius:50%;z-index:-1;pointer-events:none}
+  h1{font-family:var(--round);font-weight:400;font-size:27px;margin:8px 0 4px;letter-spacing:-0.3px}
+  h2{font-family:var(--round);font-weight:400;font-size:21px;margin:0 0 6px}
+  b{font-weight:700}
   .sub{color:var(--sub);font-size:15px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0}
-  .btn{appearance:none;border:0;border-radius:12px;padding:14px 20px;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit}
-  .btn.main{background:var(--main);color:#fff}
-  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
-  .btn:disabled{opacity:.45;cursor:default}
-  textarea,select,input{font-family:inherit;font-size:17px;width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff;color:var(--ink)}
-  textarea{min-height:92px;resize:vertical}
-  .codebox{display:flex;gap:10px;justify-content:center;margin:18px 0}
-  .codebox input{width:60px;height:72px;text-align:center;font-size:34px;font-weight:700;padding:0}
+  .card{background:var(--card);border-radius:26px;padding:20px;margin:14px 0;box-shadow:0 5px 0 var(--shadow)}
+  .btn{appearance:none;border:0;border-radius:18px;padding:14px 20px;font-size:19px;cursor:pointer;font-family:var(--round)}
+  .btn.main{background:var(--main);color:#fff;box-shadow:0 5px 0 var(--main-dark)}
+  .btn.ghost{background:#fff;color:var(--ink);box-shadow:0 4px 0 #E8DCCB}
+  .btn:active{transform:translateY(3px);box-shadow:none}
+  .btn:disabled{opacity:.5;cursor:default}
+  textarea,select,input{font-family:inherit;font-size:17px;width:100%;border:2px solid var(--line);border-radius:16px;padding:12px 14px;background:#fff;color:var(--ink)}
+  textarea:focus,select:focus,input:focus{outline:none;border-color:var(--o-line);background:#F7FDFA}
+  textarea{min-height:96px;resize:vertical}
+  textarea.need{border:2px solid var(--x-line);background:#FFF6F3}
+  .codebox{display:flex;gap:10px;justify-content:center;margin:20px 0}
+  .codebox input{width:62px;height:74px;text-align:center;font-family:var(--round);font-size:36px;padding:0;border:3px dashed #E2D6C4;border-radius:20px;color:#1F4D3E}
+  .codebox input:focus{border:3px solid #8FD3B6;background:#F2FBF7}
   .center{text-align:center}
-  .err{color:var(--x);font-weight:600;min-height:24px;margin-top:8px}
+  .err{color:var(--x);font-weight:700;min-height:24px;margin-top:8px}
   .steps{display:flex;gap:6px;margin:10px 0 4px}
-  .steps i{flex:1;height:6px;border-radius:3px;background:var(--line)}
-  .steps i.on{background:var(--main)}
-  .q{font-weight:700;margin-bottom:8px}
-  .qno{display:inline-block;min-width:26px;height:26px;border-radius:13px;background:var(--main-soft);color:var(--main);text-align:center;font-size:14px;line-height:26px;margin-right:6px}
-  .legend{display:grid;grid-template-columns:1fr;gap:6px;font-size:15px}
-  .legend b{display:inline-block;width:28px;text-align:center;font-size:19px}
-  .friend{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
-  .friend:last-child{border-bottom:0}
-  .friend .nm{flex:1;font-weight:700;font-size:18px}
+  .steps i{flex:1;height:10px;border-radius:999px;background:var(--line)}
+  .steps i.on{background:#8FD3B6}
+  .q{font-family:var(--round);font-size:19px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px}
+  .qno{flex:none;display:inline-block;min-width:32px;height:32px;border-radius:50%;background:#FFD66B;color:#5C4510;text-align:center;font-size:17px;line-height:32px}
+  .legend{display:flex;flex-wrap:wrap;gap:6px;font-size:14px;margin-top:6px}
+  .legend span{padding:6px 12px;border-radius:999px}
+  .friend{display:flex;align-items:center;gap:8px;padding:10px 10px 10px 12px;margin:10px 0;background:#fff;border-radius:22px;box-shadow:0 4px 0 var(--shadow)}
+  .friend .dot{flex:none;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--round);font-size:17px}
+  .friend .nm{flex:1;font-family:var(--round);font-size:20px}
+  .friend.miss{box-shadow:0 0 0 3px var(--x-line)}
   .friend.miss .nm{color:var(--x)}
   .seg{display:flex;gap:6px}
-  .seg button{width:64px;height:54px;border-radius:12px;border:2px solid var(--line);background:#fff;font-size:24px;font-weight:700;cursor:pointer;color:var(--sub);font-family:inherit;line-height:1}
-  .seg button small{display:block;font-size:11px;font-weight:600;margin-top:3px}
-  .seg button.on.o{border-color:var(--o);background:var(--o-soft);color:var(--o)}
-  .seg button.on.t{border-color:var(--t);background:var(--t-soft);color:#4b5058}
-  .seg button.on.x{border-color:var(--x);background:var(--x-soft);color:var(--x)}
-  .slot{border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0;background:#fcfbf8}
-  .slot label{font-weight:700;display:block;margin-bottom:6px}
+  .seg button{width:56px;height:54px;border-radius:16px;border:3px solid var(--line);background:#fff;font-size:24px;cursor:pointer;color:#B9AFA3;font-family:var(--round);line-height:1;padding:0}
+  .seg button small{display:block;font-size:11px;margin-top:2px;font-family:'Gowun Dodum',sans-serif}
+  .seg button.on.o{border-color:var(--o-line);background:var(--o-soft);color:var(--o)}
+  .seg button.on.t{border-color:var(--t-line);background:var(--t-soft);color:var(--t)}
+  .seg button.on.x{border-color:var(--x-line);background:var(--x-soft);color:var(--x)}
+  .slot{border-radius:22px;padding:16px;margin:12px 0;background:#fff;box-shadow:0 4px 0 var(--shadow)}
+  .slot label{font-family:var(--round);font-size:18px;display:block;margin-bottom:8px}
   .slot select{margin-bottom:8px}
-  .bar{position:fixed;left:0;right:0;bottom:0;background:rgba(246,244,239,.96);border-top:1px solid var(--line);padding:12px 16px}
+  .bar{position:fixed;left:0;right:0;bottom:0;background:rgba(255,248,238,.96);border-top:2px dashed var(--line);padding:12px 16px 16px}
   .bar .in{max-width:720px;margin:0 auto;display:flex;gap:10px}
   .bar .in .btn{flex:1}
-  .count{font-size:15px;color:var(--sub);margin:4px 0 0}
+  .bar .in #nextBtn{flex:2}
+  .count{font-size:15px;color:var(--sub);margin:8px 0 0}
+  .count b{color:var(--x)}
   .hide{display:none!important}
-  textarea.need{border:2px solid var(--x);background:#fff7f5}
-  .modal{position:fixed;inset:0;background:rgba(20,22,26,.45);display:flex;align-items:center;justify-content:center;padding:16px}
-  .modal .box{background:#fff;border-radius:16px;padding:22px;max-width:420px;width:100%}
+  .modal{position:fixed;inset:0;background:rgba(59,54,49,.4);display:flex;align-items:center;justify-content:center;padding:16px}
+  .modal .box{background:#fff;border-radius:26px;padding:24px;max-width:420px;width:100%}
   .modal .row{display:flex;gap:10px;margin-top:18px}
   .modal .row .btn{flex:1}
-  .done{font-size:22px;font-weight:800;margin:30px 0 10px}
-  .review dt{font-weight:700;margin-top:10px}
+  .done{font-family:var(--round);font-size:26px;margin:24px 0 10px;color:var(--main-dark)}
+  .review dt{font-family:var(--round);font-size:16px;margin-top:12px}
   .review dd{margin:2px 0 0;color:var(--sub);white-space:pre-wrap}
-  .brand{font-size:56px;font-weight:900;letter-spacing:4px;color:var(--main);line-height:1}
-  .brand-sub{font-size:16px;color:var(--sub);letter-spacing:6px;margin-top:6px}
-  .foot{text-align:center;color:#a3a7ad;font-size:12px;margin-top:18px}
-  .demo{background:#fff3cd;border:1px solid #f0d58a;border-radius:10px;padding:8px 12px;font-size:14px}
+  .demo{background:#FFF1C9;border-radius:14px;padding:8px 12px;font-size:14px;color:#5C4510}
+  .brand{display:flex;gap:8px;justify-content:center}
+  .brand span{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--round);font-size:38px}
+  .brand span:nth-child(1){background:#8FD3B6;color:#1F4D3E;transform:rotate(-6deg)}
+  .brand span:nth-child(2){background:#FFB4A2;color:#6B2E22;transform:translateY(-8px)}
+  .brand span:nth-child(3){background:#FFD66B;color:#5C4510;transform:rotate(5deg)}
+  .brand span:nth-child(4){background:#C7B8F5;color:#3B2D72;transform:translateY(-4px)}
+  .brand-sub{font-family:var(--round);font-size:21px;color:#5E5750;letter-spacing:6px;margin-top:12px}
+  .tag{display:inline-block;background:#FFF1C9;color:#6B5310;font-size:14px;padding:5px 14px;border-radius:999px}
+  .foot{text-align:center;color:#8A8179;font-size:13px;margin-top:18px}
+  a{color:#2E6E58}
 </style>
 </head>
 <body>
+<div class="blob" style="top:-50px;right:-60px;width:190px;height:190px;background:#FFE3D6"></div><div class="blob" style="bottom:60px;left:-70px;width:170px;height:170px;background:#E2F4EC"></div>
 <div class="wrap" id="app"></div>
 <div class="bar hide" id="bar"><div class="in">
   <button class="btn ghost" id="prevBtn">이전</button>
@@ -81,7 +102,7 @@
 <script>
 var KEY_NAME='7942_key';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.3.1', NEED_SHELL=1;
+var APP_VER='1.4.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -134,7 +155,7 @@ function codeScreen(n,guide,msg,extra,onGo){
   app.innerHTML =
     (IS_GAS?'':'<div class="demo">미리보기 화면입니다. 아무 숫자나 넣어 보세요.</div>')+
     '<div class="card center" style="margin-top:40px">'+
-    '<div class="brand">7942</div><div class="brand-sub">친구사이</div><div class="sub" style="margin-top:12px">'+guide+'</div>'+
+    '<div class="brand" role="img" aria-label="7942"><span>7</span><span>9</span><span>4</span><span>2</span></div><div class="brand-sub">친구사이</div><div class="sub" style="margin-top:12px">'+guide+'</div>'+
     '<div class="codebox">'+Array.apply(null,{length:n}).map(function(_,i){return '<input inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" data-i="'+i+'">';}).join('')+'</div>'+
     '<button class="btn main" id="goBtn" style="width:100%">들어가기</button>'+
     '<div class="err" id="err">'+esc(msg||'')+'</div>'+(extra||'')+'</div><div class="foot">만든이 음악적체육인</div>';
@@ -158,7 +179,7 @@ function codeScreen(n,guide,msg,extra,onGo){
 function showClassCode(msg){
   bar(false);
   if(!REG){
-    app.innerHTML='<div class="card center" style="margin-top:60px"><div class="brand">7942</div><div class="brand-sub">친구사이</div>'+
+    app.innerHTML='<div class="card center" style="margin-top:60px"><div class="brand" role="img" aria-label="7942"><span>7</span><span>9</span><span>4</span><span>2</span></div><div class="brand-sub">친구사이</div>'+
       '<p class="sub" style="margin-top:16px">선생님이 알려 준 주소나 QR 코드로 들어와 주세요.</p>'+
       '<p class="sub"><a href="?demo">어떻게 생겼는지 미리보기</a> · <a href="teacher.html">선생님 화면</a></p></div><div class="foot">만든이 음악적체육인</div>';
     return;
@@ -191,7 +212,7 @@ function confirmMe(){
     app.innerHTML='<div class="card center" style="margin-top:40px"><div class="done">이미 제출했어요</div><div class="sub">'+esc(info.roundName)+' 설문을 벌써 냈어요. 고칠 것이 있으면 선생님께 말씀드려 주세요.</div></div>';
     return;
   }
-  app.innerHTML='<div class="card center" style="margin-top:40px"><div class="sub">'+esc(info.roundName)+'</div>'+
+  app.innerHTML='<div class="card center" style="margin-top:40px"><span class="tag">'+esc(info.roundName)+'</span>'+
     '<h1>'+esc(info.name)+' 학생이 맞나요?</h1><div class="sub">내 이름이 아니면 코드를 다시 확인해 주세요.</div>'+
     '<div style="display:flex;gap:10px;margin-top:20px"><button class="btn ghost" style="flex:1" id="noBtn">아니요</button><button class="btn main" style="flex:1" id="yesBtn">네, 맞아요</button></div></div>';
   document.getElementById('noBtn').onclick=function(){ showLogin(); };
@@ -216,11 +237,16 @@ function startSurvey(){
 
 function praiseSlots(){
   var st=S.info.settings, out=[];
+  // 고를 수 있는 친구 수만큼만 칸을 만듦 (반에 남학생·여학생이 없거나 적으면 그 칸은 빠짐)
+  var fr=S.info.friends;
+  function avail(g){ return fr.filter(function(f){ return !g || !f.gender || f.gender===g; }).length; }
   if(st.praiseMode==='gender'){
-    for(var i=0;i<Number(st.praiseMale||0);i++) out.push({slot:'남'+(i+1),label:'남자 친구'+(st.praiseMale>1?' '+(i+1):''),g:'남'});
-    for(var j=0;j<Number(st.praiseFemale||0);j++) out.push({slot:'여'+(j+1),label:'여자 친구'+(st.praiseFemale>1?' '+(j+1):''),g:'여'});
+    var nm=Math.min(Number(st.praiseMale||0),avail('남')), nf=Math.min(Number(st.praiseFemale||0),avail('여'));
+    for(var i=0;i<nm;i++) out.push({slot:'남'+(i+1),label:'남자 친구'+(nm>1?' '+(i+1):''),g:'남'});
+    for(var j=0;j<nf;j++) out.push({slot:'여'+(j+1),label:'여자 친구'+(nf>1?' '+(j+1):''),g:'여'});
   } else if(st.praiseMode==='any'){
-    for(var k=0;k<Number(st.praiseAny||0);k++) out.push({slot:'친구'+(k+1),label:'친구 '+(k+1),g:''});
+    var na=Math.min(Number(st.praiseAny||0),avail(''));
+    for(var k=0;k<na;k++) out.push({slot:'친구'+(k+1),label:'친구 '+(k+1),g:''});
   }
   return out;
 }
@@ -236,13 +262,14 @@ function render(){
   }
   if(kind==='relations'){
     var fr=S.info.friends;
-    body='<div class="card"><h2>나와 우리 반 친구와의 관계</h2><div class="legend">'+
-      '<div><b style="color:var(--o)">○</b> 함께 있고 싶다! 친하다! 호감이 있다!</div>'+
-      '<div><b style="color:var(--t)">△</b> 그저 그렇다. 옆에 있어도 그만, 없어도 그만</div>'+
-      '<div><b style="color:var(--x)">X</b> 이 친구와는 사이가 안 좋다. 좋지 않은 일이나 감정이 있다!</div></div>'+
+    var dots=['#CDEFE0','#FFE0D6','#FFF0C2','#E3DAFB'];
+    body='<div class="card"><h2>나와 친구들은 어떤 사이?</h2><div class="legend">'+
+      '<span style="background:var(--o-soft);color:var(--o)">○ 함께 있고 싶어! 친해!</span>'+
+      '<span style="background:var(--t-soft);color:var(--t)">△ 그저 그래</span>'+
+      '<span style="background:var(--x-soft);color:var(--x)">X 사이가 안 좋아</span></div>'+
       '<div class="count" id="relCount"></div></div>'+
-      '<div class="card">'+fr.map(function(f){ var v=S.data.rel[f.id]||'';
-        return '<div class="friend" data-id="'+f.id+'"><div class="nm">'+esc(f.name)+'</div><div class="seg">'+
+      '<div>'+fr.map(function(f,fi){ var v=S.data.rel[f.id]||'';
+        return '<div class="friend" data-id="'+f.id+'"><div class="dot" aria-hidden="true" style="background:'+dots[fi%4]+'">'+esc(f.name.charAt(f.name.length>2?1:0))+'</div><div class="nm">'+esc(f.name)+'</div><div class="seg">'+
         [['o','○','친해요'],['t','△','보통'],['x','X','안 좋아요']].map(function(b){ return '<button class="'+b[0]+(v===b[0]?' on':'')+'" data-v="'+b[0]+'">'+b[1]+'<small>'+b[2]+'</small></button>'; }).join('')+
         '</div></div>'; }).join('')+'</div>';
   }
@@ -307,7 +334,7 @@ function bindStep(kind){
 function relCount(){
   var left=S.info.friends.filter(function(f){return !S.data.rel[f.id];}).length;
   var el=document.getElementById('relCount');
-  if(el) el.textContent= left? '아직 표시하지 않은 친구: '+left+'명' : '모든 친구를 표시했어요.';
+  if(el) el.innerHTML= left? '아직 표시하지 않은 친구 <b>'+left+'명</b>' : '모든 친구를 표시했어요.';
 }
 
 function checkStep(kind){
