@@ -215,7 +215,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.6.3', NEED_SHELL=1;
+var APP_VER='1.7.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -1053,7 +1053,12 @@ function vSettings(v){
     '<div class="card"><h2>선생님께 한마디</h2><label><input type="checkbox" id="tMsg"'+(s.askTeacherMessage?' checked':'')+'> 묻기</label></div>'+
     '<div class="card"><button class="btn main" id="save">이 회차 설정 저장</button> <button class="btn warn" id="delR" style="float:right">이 회차 지우기</button></div>'+
     (IS_GAS?'<div class="card"><h2>연결된 시트</h2><div class="sub">이 기기는 지금 연결된 시트로 열려요. 다른 반 시트를 쓰려면 연결을 끊고 새 주소를 넣으세요.</div><div class="set-row"><button class="btn" id="unl">연결 끊기</button><span class="sub">화면 버전 '+APP_VER+'</span></div></div>':'')+
-    '<div class="card"><h2>선생님 비밀번호 바꾸기</h2><div class="set-row"><input type="password" id="op" placeholder="지금 비밀번호"><input type="password" id="np" placeholder="새 비밀번호(4자 이상)"><button class="btn" id="cp">바꾸기</button></div></div>';
+    '<div class="card"><h2>선생님 비밀번호 바꾸기</h2><div class="set-row"><input type="password" id="op" placeholder="지금 비밀번호"><input type="password" id="np" placeholder="새 비밀번호(4자 이상)"><button class="btn" id="cp">바꾸기</button></div></div>'+
+    '<div class="card" style="border:2px dashed #F2C7BA"><h2>새 학년 시작 (전체 초기화)</h2>'+
+      '<div class="sub">새 학년이 되면 지난 반 자료를 지우고 처음부터 쓸 수 있어요. 모든 회차와 학생 응답, 이 컴퓨터에 남은 AI 분석 결과가 지워져요. 비밀번호·반 코드·시트 연결은 그대로예요.</div>'+
+      '<div class="sub" style="margin-top:6px">지난 자료를 남겨 두려면 먼저 위의 [시트 열기] → 파일 → <b>사본 만들기</b>로 시트를 보관해 두세요. (지운 자료는 되돌릴 수 없어요)</div>'+
+      '<div class="set-row"><label><input type="checkbox" id="rsRoster" checked> 학생 명단과 코드도 지우기 (새 반이면 켜 두세요)</label></div>'+
+      '<button class="btn warn" id="rsAll">전체 초기화</button></div>';
   function collectQ(){ return [].map.call(v.querySelectorAll('#qbox input'),function(x){return x.value;}); }
   function rebindQ(){ v.querySelectorAll('[data-del]').forEach(function(b){ b.onclick=function(){ var qs=collectQ(); qs.splice(+b.dataset.del,1); document.getElementById('qbox').innerHTML=qs.map(function(t,i){return q(i,t);}).join(''); rebindQ(); }; }); }
   rebindQ();
@@ -1072,6 +1077,22 @@ function vSettings(v){
         call('deleteRound',T.token,T.rid).then(function(x){ T.rounds=x; delete T.data[r.id]; T.rid=x.length?x[x.length-1].id:null; return loadRound(T.rid); }).then(draw).catch(fail); },'warn']]);
   };
   var unl=document.getElementById('unl'); if(unl) unl.onclick=function(){ lsSet(KEY_NAME,null); T.token=null; connectView(); };
+  document.getElementById('rsAll').onclick=function(){
+    var withRoster=chk('rsRoster');
+    modal('<h2>전체 초기화</h2><div class="sub">회차 '+T.rounds.length+'개와 학생 응답을 모두 지워요'+(withRoster?'. 학생 명단 '+T.roster.length+'명과 코드도 지워요':'')+'. 되돌릴 수 없어요.<br>확인하려면 아래 칸에 <b>초기화</b>라고 적어 주세요.</div><input id="rsCf" style="width:100%;margin-top:10px" placeholder="초기화">',
+      [['취소'],['지우기',function(){
+        if(document.getElementById('rsCf').value.trim()!=='초기화'){ toast('"초기화"라고 적어 주세요'); return false; }
+        var ids=T.rounds.map(function(r){return r.id;});
+        toast('지우는 중이에요...');
+        ids.reduce(function(p,id){ return p.then(function(){ return call('deleteRound',T.token,id); }); },Promise.resolve())
+          .then(function(){ return withRoster?call('saveRoster',T.token,[]):null; })
+          .then(function(){
+            try{ var pre='7942_ai_'+(apiKey()||'demo')+'_'; Object.keys(localStorage).forEach(function(k){ if(k.indexOf(pre)===0) localStorage.removeItem(k); }); }catch(e){}
+            T.data={}; T.aiJobs={}; T.sel=null; T.tab=withRoster?'roster':'status';
+            return call('teacherInit',T.token).then(init);
+          }).then(function(){ toast('초기화했어요. 새 학년도 잘 부탁해요!'); }).catch(fail);
+      },'warn']]);
+  };
   document.getElementById('cp').onclick=function(){ call('changePassword',T.token,val('op'),val('np')).then(function(){ T.defaultPw=false; toast('비밀번호를 바꿨어요'); draw(); }).catch(fail); };
   function val(id){ return document.getElementById(id).value; } function chk(id){ return document.getElementById(id).checked; } function num(id){ return Math.max(0,parseInt(val(id),10)||0); }
 }
