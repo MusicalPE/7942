@@ -8,6 +8,10 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
 <link rel="icon" type="image/png" href="favicon-64.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="teacher.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="7942 선생님">
 <meta name="description" content="학생이 4자리 코드로 직접 답하는 우리 반 교우관계 설문 — 관계표, 친구 그룹, 회차 비교, AI 분석">
 <meta property="og:type" content="website">
 <meta property="og:title" content="7942 친구사이 (선생님)">
@@ -223,7 +227,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.7.1', NEED_SHELL=1;
+var APP_VER='1.8.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -311,7 +315,7 @@ function connectView(msg){
    '<h2 style="margin-top:18px">내 시트 연결하기</h2><div class="sub">껍데기 시트를 웹 앱으로 배포하고 나온 주소(https://script.google.com/macros/s/.../exec)를 붙여 넣으세요. 이 기기에 기억되어 다음부터는 바로 열려요.</div>'+
    '<input id="wurl" placeholder="https://script.google.com/macros/s/..../exec" style="width:100%;margin:10px 0;padding:10px">'+
    '<button class="btn main" id="cn" style="width:100%;padding:10px">연결하기</button><div class="err" style="margin-top:8px">'+esc(msg||'')+'</div>'+
-   '<div class="card" style="background:#f7f6f2;margin:14px 0 0"><b>아직 껍데기 시트가 없다면</b><ol class="sub" style="margin:6px 0 0;padding-left:18px"><li><a href="https://docs.google.com/spreadsheets/d/1x-yX5q_4KDUINBTxxXw7Oc7cbsWddgakaVzgkcQiaFs/copy" target="_blank">껍데기 시트 사본 만들기</a>를 누르고 [사본 만들기]</li><li>사본에서 [확장 프로그램] > [Apps Script] > [배포] > [새 배포] > 웹 앱 (실행: 나, 액세스: 모든 사용자)</li><li>나온 주소를 위 칸에 붙여 넣기</li></ol><p class="sub" style="margin:8px 0 0"><a href="https://github.com/MusicalPE/7942#readme" target="_blank">자세한 설치 안내</a> · <a href="?demo">미리보기로 둘러보기</a></p></div></div><div class="foot">만든이 음악적체육인</div></main>';
+   '<div class="card" style="background:#f7f6f2;margin:14px 0 0"><b>아직 껍데기 시트가 없다면</b><ol class="sub" style="margin:6px 0 0;padding-left:18px"><li><a href="https://docs.google.com/spreadsheets/d/1x-yX5q_4KDUINBTxxXw7Oc7cbsWddgakaVzgkcQiaFs/copy" target="_blank">껍데기 시트 사본 만들기</a>를 누르고 [사본 만들기]</li><li>사본에서 [확장 프로그램] > [Apps Script] > [배포] > [새 배포] > 웹 앱 (실행: 나, 액세스: 모든 사용자)</li><li>나온 주소를 위 칸에 붙여 넣기</li></ol><p class="sub" style="margin:8px 0 0"><a href="https://github.com/MusicalPE/7942#readme" target="_blank">자세한 설치 안내</a> · <a href="?demo">미리보기로 둘러보기</a></p></div></div><p class="center" style="margin-top:12px"><button class="btn sm btn-install hide">선생님 화면을 앱으로 설치</button></p><div class="foot">만든이 음악적체육인</div></main>';
   var w=document.getElementById('wurl'); w.focus();
   w.onkeydown=function(e){ if(e.key==='Enter') go(); };
   document.getElementById('cn').onclick=go;
@@ -325,7 +329,7 @@ function loginView(msg){
   if(IS_GAS && !apiKey()){ connectView(); return; }
   root.innerHTML='<main style="max-width:380px;margin-top:80px"><div class="card center">'+(IS_GAS?'':'<div class="demo">미리보기입니다. 아무 비밀번호나 넣으세요.</div>')+
    '<div class="brand" role="img" aria-label="7942" style="margin-top:10px"><span>7</span><span>9</span><span>4</span><span>2</span></div><div class="brand-sub">친구사이 · 선생님</div><input type="password" id="pw" placeholder="비밀번호" style="width:100%;margin:10px 0;font-size:16px;padding:10px">'+
-   '<button class="btn main" id="lg" style="width:100%;padding:10px">들어가기</button><div class="err" style="margin-top:8px">'+esc(msg||'')+'</div>'+(IS_GAS?'<p class="sub" style="margin-top:10px"><a href="#" id="unlink">다른 시트 연결하기</a></p>':'')+'</div><div class="foot">만든이 음악적체육인</div></main>';
+   '<button class="btn main" id="lg" style="width:100%;padding:10px">들어가기</button><div class="err" style="margin-top:8px">'+esc(msg||'')+'</div>'+(IS_GAS?'<p class="sub" style="margin-top:10px"><a href="#" id="unlink">다른 시트 연결하기</a></p>':'')+'</div><p class="center" style="margin-top:12px"><button class="btn sm btn-install hide">선생님 화면을 앱으로 설치</button></p><div class="foot">만든이 음악적체육인</div></main>';
   var ul=document.getElementById('unlink'); if(ul) ul.onclick=function(e){ e.preventDefault(); lsSet(KEY_NAME,null); connectView(); };
   var pw=document.getElementById('pw'); pw.focus();
   pw.onkeydown=function(e){ if(e.key==='Enter') go(); };
@@ -394,7 +398,7 @@ function draw(){
      '<button class="btn sm" id="tgl">'+(r.status==='진행중'?'마감하기':'다시 열기')+'</button>':''):'<span class="sub">아직 회차가 없어요</span>')+
     '<button class="btn sm main" id="newR">새 회차 만들기</button><span style="flex:1"></span>'+
     (IS_GAS?'':'<span class="demo">미리보기(지어낸 이름)</span>')+
-    '<button class="btn sm" id="lnk">학생용 주소</button><a class="btn sm" href="'+esc(T.sheetUrl)+'" target="_blank" style="text-decoration:none">시트 열기</a><button class="btn sm" id="lgo">로그아웃</button></header>'+
+    '<button class="btn sm" id="lnk">학생용 주소</button><a class="btn sm" href="'+esc(T.sheetUrl)+'" target="_blank" style="text-decoration:none">시트 열기</a><button class="btn sm btn-install hide">앱으로 설치</button><button class="btn sm" id="lgo">로그아웃</button></header>'+
     '<main>'+(T.shellOld?'<div class="card warnbar" style="background:#fdecea;border-color:#f0b8ae">시트 껍데기가 예전 버전이에요. 설치 안내를 보고 Code.gs를 새로 붙여 넣은 뒤 [배포 관리]에서 새 버전으로 배포해 주세요.</div>':'')+(T.defaultPw?'<div class="card warnbar" style="background:#fff8e6;border-color:#f0d58a">처음 비밀번호(0000)를 쓰고 있어요. [설문 설정] 탭 아래에서 꼭 바꿔 주세요.</div>':'')+
     '<div class="tabs">'+TABS.map(function(t){ return '<button data-t="'+t[0]+'" class="'+(T.tab===t[0]?'on':'')+'">'+t[1]+'</button>'; }).join('')+'</div><div id="view"></div></main>';
   root.querySelectorAll('.tabs button').forEach(function(b){ b.onclick=function(){ if(T.tab==='roster'&&T.rosterDirty&&!confirm('명단에서 고친 내용을 아직 저장하지 않았어요. 그냥 넘어갈까요?')) return; T.tab=b.dataset.t; draw(); }; });
@@ -457,6 +461,25 @@ function bigQR(){
   w.document.close();
   loadQRLib().then(function(){ var q=qrcode(0,'M'); q.addData(T.url); q.make(); w.document.getElementById('q').innerHTML=q.createSvgTag({cellSize:12,margin:2}); });
 }
+
+/* ───────── 앱으로 설치 (안드로이드·PC 크롬/엣지는 한 번에, 아이폰·아이패드는 방법 안내) ───────── */
+var installEvt=null;
+function isStandalone(){ return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }
+function isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); }
+function refreshInstallBtns(){
+  var show=!DEMO_MODE&&!isStandalone()&&!!(installEvt||isIOS());
+  document.querySelectorAll('.btn-install').forEach(function(b){ b.classList.toggle('hide',!show); b.onclick=installApp; });
+}
+function installApp(){
+  if(installEvt){ var e=installEvt; e.prompt(); (e.userChoice||Promise.resolve()).then(function(r){ if(r&&r.outcome==='accepted') installEvt=null; refreshInstallBtns(); }); return; }
+  // 아이폰은 홈 화면 앱이 사파리와 저장 공간을 따로 써서, 시트 주소를 앱 주소에 담아 둠
+  var k=apiKey(); if(k){ try{ history.replaceState(null,'',location.pathname+'?k='+k); }catch(err){} }
+  modal('<h2>홈 화면에 앱 깔기</h2><ol class="sub" style="padding-left:20px;line-height:1.8"><li>사파리 아래쪽(아이패드는 위쪽)의 <b>공유</b> 단추(네모에서 화살표가 나오는 모양)를 누르세요.</li><li>목록을 내려서 <b>홈 화면에 추가</b>를 누르세요.</li><li>오른쪽 위 <b>추가</b>를 누르면 끝이에요.</li></ol><p class="sub">사파리가 아닌 다른 앱에서 열었으면, 먼저 사파리로 열어 주세요. 앱을 처음 열 때 비밀번호를 한 번 더 넣어요.</p>',[['닫기',function(){ try{ history.replaceState(null,'',location.pathname); }catch(err){} }]]);
+}
+window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); installEvt=e; refreshInstallBtns(); });
+window.addEventListener('appinstalled',function(){ installEvt=null; refreshInstallBtns(); toast('앱으로 설치했어요'); });
+if(window.MutationObserver) new MutationObserver(refreshInstallBtns).observe(root,{childList:true});
+if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js',{scope:'./teacher.html',updateViaCache:'none'}).catch(function(){});
 
 function modal(html,buttons){
   var md=document.getElementById('modal'), box=document.getElementById('modalBox');

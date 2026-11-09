@@ -1,0 +1,17 @@
+{
+  "id": "./teacher.html",
+  "name": "7942 친구사이 (선생님)",
+  "short_name": "7942 선생님",
+  "description": "우리 반 교우관계 설문 — 관계표, 친구 그룹, 회차 비교, AI 분석",
+  "lang": "ko",
+  "start_url": "./teacher.html",
+  "scope": "./teacher.html",
+  "display": "standalone",
+  "background_color": "#FFF8EE",
+  "theme_color": "#FFF8EE",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
