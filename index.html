@@ -117,7 +117,7 @@
 <script>
 var KEY_NAME='7942_key';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.5.0', NEED_SHELL=1;
+var APP_VER='1.5.1', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -247,6 +247,7 @@ function startSurvey(){
   if(st.askTeacherMessage) S.steps.push('message');
   S.steps.push('review');
   S.step=0;
+  var sv=ssGet(); if(sv&&sv.code===S.code&&sv.rid===S.info.rid&&sv.step<S.steps.length) S.step=sv.step;
   render();
 }
 
@@ -402,7 +403,7 @@ function askSubmit(){
       praise:(S.data.praise||[]).filter(function(p){return p&&p.id;}),
       conflict:(S.data.conflict||[]).filter(function(p){return p&&p.id;}), message:S.data.message };
     call('studentSubmit',S.info.token,payload).then(function(){
-      clearDraft(); md.classList.add('hide'); bar(false);
+      clearDraft(); ssSet(null); md.classList.add('hide'); bar(false);
       app.innerHTML='<div class="card center" style="margin-top:40px"><div class="done">제출했어요. 고마워요!</div><div class="sub">솔직하게 적어 준 마음은 선생님만 보고, 더 좋은 우리 반을 만드는 데 쓸게요.</div></div>';
     }).catch(function(e){
       md.classList.add('hide');
@@ -412,7 +413,16 @@ function askSubmit(){
   };
 }
 
-showLogin();
+/* 새로 고침해도 이어서: 같은 탭 안에서만 기억 (탭을 닫으면 잊음) */
+function ssSet(v){ try{ if(v==null) sessionStorage.removeItem('7942_stu'); else sessionStorage.setItem('7942_stu',JSON.stringify(v)); }catch(e){} }
+function ssGet(){ try{ return JSON.parse(sessionStorage.getItem('7942_stu')||'null'); }catch(e){ return null; } }
+var _render=render;
+render=function(){ _render(); if(S.info) ssSet({code:S.code,rid:S.info.rid,info:S.info,step:S.step,key:apiKey()}); };
+(function(){
+  var sv=ssGet();
+  if(sv&&sv.info&&!sv.info.submitted&&(sv.key||'')===(apiKey()||'')){ S.code=sv.code; S.info=sv.info; startSurvey(); }
+  else showLogin();
+})();
 </script>
 </body>
 </html>
