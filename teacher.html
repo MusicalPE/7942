@@ -117,7 +117,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.2.0', NEED_SHELL=1;
+var APP_VER='1.3.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -282,7 +282,7 @@ function draw(){
     '<button class="btn sm" id="lnk">학생용 주소</button><a class="btn sm" href="'+esc(T.sheetUrl)+'" target="_blank" style="text-decoration:none">시트 열기</a></header>'+
     '<main>'+(T.shellOld?'<div class="card" style="background:#fdecea;border-color:#f0b8ae">시트 껍데기가 예전 버전이에요. 설치 안내를 보고 Code.gs를 새로 붙여 넣은 뒤 [배포 관리]에서 새 버전으로 배포해 주세요.</div>':'')+(T.defaultPw?'<div class="card" style="background:#fff8e6;border-color:#f0d58a">처음 비밀번호(0000)를 쓰고 있어요. [설문 설정] 탭 아래에서 꼭 바꿔 주세요.</div>':'')+
     '<div class="tabs">'+TABS.map(function(t){ return '<button data-t="'+t[0]+'" class="'+(T.tab===t[0]?'on':'')+'">'+t[1]+'</button>'; }).join('')+'</div><div id="view"></div></main>';
-  root.querySelectorAll('.tabs button').forEach(function(b){ b.onclick=function(){ T.tab=b.dataset.t; draw(); }; });
+  root.querySelectorAll('.tabs button').forEach(function(b){ b.onclick=function(){ if(T.tab==='roster'&&T.rosterDirty&&!confirm('명단에서 고친 내용을 아직 저장하지 않았어요. 그냥 넘어갈까요?')) return; T.tab=b.dataset.t; draw(); }; });
   var rs=document.getElementById('rsel'); if(rs) rs.onchange=function(){ T.rid=rs.value; T.sel=null; loadRound(T.rid).then(draw); };
   var tg=document.getElementById('tgl'); if(tg) tg.onclick=function(){
     call('updateRound',T.token,T.rid,{status:r.status==='진행중'?'마감':'진행중'}).then(function(x){ T.rounds=x; draw(); toast(r.status==='진행중'?'마감했어요. 학생이 더 이상 들어올 수 없어요.':'다시 열었어요. 다른 회차는 마감됐어요.'); }).catch(fail); };
@@ -722,37 +722,110 @@ function vSettings(v){
   function val(id){ return document.getElementById(id).value; } function chk(id){ return document.getElementById(id).checked; } function num(id){ return Math.max(0,parseInt(val(id),10)||0); }
 }
 
-/* 학생 명단·코드 */
+/* 학생 명단·코드 (점퍼스 학생 등록 방식: 붙여넣으면 바로 미리보기 → 확인 후 등록) */
+function parseBulk(raw){
+  var out=[];
+  raw.split('\n').forEach(function(line){
+    var t=line.replace(/\r/g,''); if(!t.trim()) return;
+    var p=t.split('\t'); if(p.length<2) p=t.split(','); if(p.length<2) p=t.trim().split(/\s+/);
+    p=p.map(function(x){return x.trim();});
+    if(/^번호$|^no$/i.test(p[0])||/^이름$/.test(p[0])) return;            // 제목 줄
+    var no='',name='',g='';
+    if(/^\d+\s*번?$/.test(p[0])){ no=p[0].replace(/\D/g,''); name=p[1]||''; g=p[2]||''; } else { name=p[0]; g=p[1]||''; }
+    g=/남/.test(g)?'남':/여/.test(g)?'여':'';
+    var row={no:no,name:name,gender:g,ok:true,why:''};
+    if(!name){ row.ok=false; row.why='이름이 없어요'; }
+    else if(T.roster.some(function(s){ return s.name===name && String(s.no)===String(no||s.no); })){ row.ok=false; row.why='이미 등록됨'; }
+    else if(no && T.roster.some(function(s){ return String(s.no)===no && s.status!=='전출'; })){ row.ok=false; row.why=no+'번이 이미 있어요'; }
+    else if(out.some(function(o){ return o.ok && o.name===name && o.no===no; })){ row.ok=false; row.why='붙여 넣은 내용 안에서 중복'; }
+    out.push(row);
+  });
+  return out;
+}
+
 function vRoster(v){
-  var R=T.roster;
-  v.innerHTML='<div class="card"><h2>학생 명단 <span class="sub">'+active().length+'명</span></h2>'+
-    '<div class="sub">코드는 학생마다 한 번 만들어지면 회차가 바뀌어도 그대로예요. 잃어버린 학생만 [새 코드]로 바꿔 주세요. 전학 간 학생은 상태를 "전출"로 바꾸면 설문과 표에서 빠져요.</div>'+
-    '<div style="overflow:auto;margin-top:10px"><table class="tbl" id="rt"><tr><th style="width:70px">번호</th><th>이름</th><th style="width:90px">성별</th><th style="width:100px">상태</th><th style="width:90px">코드</th><th style="width:90px"></th></tr>'+
-    R.map(function(s){ return row(s); }).join('')+'</table></div>'+
-    '<div class="noprint" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn sm" id="add">한 줄 더하기</button><button class="btn sm" id="paste">여러 명 한 번에 붙여 넣기</button><span style="flex:1"></span><button class="btn main" id="sv">명단 저장</button></div></div>'+
-    '<div class="card"><h2>코드 카드 <span class="sub">잘라서 나눠 주세요</span></h2><div class="noprint" style="margin-bottom:10px"><button class="btn sm" id="pr">코드 카드만 인쇄</button> <button class="btn sm warn" id="rgAll">모든 코드 새로 만들기</button></div>'+
-    '<div class="codes" id="codes">'+active().map(function(s){ return '<div class="codecard"><div class="n">'+s.no+'. '+esc(s.name)+'</div><div class="c">'+esc(s.code)+'</div><div class="u">7942 친구사이에 들어갈 때 이 숫자를 넣어요</div></div>'; }).join('')+'</div></div>';
-  function row(s){ s=s||{no:'',name:'',gender:'',status:'재학',code:''};
-    return '<tr data-id="'+esc(s.id||'')+'"><td><input class="no" value="'+esc(s.no)+'" style="width:56px"></td><td><input class="nm" value="'+esc(s.name)+'" style="width:100%"></td>'+
-      '<td><select class="gd"><option value=""></option><option'+(s.gender==='남'?' selected':'')+'>남</option><option'+(s.gender==='여'?' selected':'')+'>여</option></select></td>'+
-      '<td><select class="st"><option'+(s.status!=='전출'?' selected':'')+'>재학</option><option'+(s.status==='전출'?' selected':'')+'>전출</option></select></td>'+
-      '<td><b>'+esc(s.code||'저장 후 생김')+'</b></td><td>'+(s.id?'<button class="btn sm" data-rg="'+s.id+'">새 코드</button>':'')+'</td></tr>'; }
-  function collect(){ return [].map.call(v.querySelectorAll('#rt tr[data-id]'),function(tr){ return {id:tr.dataset.id||null,no:tr.querySelector('.no').value,name:tr.querySelector('.nm').value.trim(),gender:tr.querySelector('.gd').value,status:tr.querySelector('.st').value}; }); }
-  document.getElementById('add').onclick=function(){ var n=v.querySelectorAll('#rt tr[data-id]').length+1; document.getElementById('rt').insertAdjacentHTML('beforeend',row({no:n,name:'',gender:'',status:'재학'})); };
-  document.getElementById('paste').onclick=function(){
-    modal('<h2>여러 명 붙여 넣기</h2><div class="sub">한 줄에 한 명씩 "번호 이름 성별" 순서로 넣어 주세요. 엑셀에서 세 칸을 복사해 붙여도 돼요. 성별은 비워도 돼요.<br>예) 1 김하늘 여</div><textarea id="pt" style="min-height:200px;margin-top:10px"></textarea>',
-      [['취소'],['명단 아래에 더하기',function(){
-        document.getElementById('pt').value.split(/\n/).forEach(function(line){ var p=line.trim().split(/[\t ,]+/); if(!p[0]) return;
-          var no='',nm,g=''; if(/^\d+$/.test(p[0])){ no=p[0]; nm=p[1]; g=p[2]||''; } else { nm=p[0]; g=p[1]||''; }
-          if(!nm) return; g=/남/.test(g)?'남':/여/.test(g)?'여':'';
-          document.getElementById('rt').insertAdjacentHTML('beforeend',row({no:no,name:nm,gender:g,status:'재학'})); });
-        toast('더했어요. [명단 저장]을 눌러야 저장돼요');
-      },'main']]);
+  var R=T.roster, act=active();
+  T.rosterDirty=false;
+  v.innerHTML=
+    '<div class="two">'+
+    '<div class="card"><h2>엑셀에서 붙여 넣어 등록</h2>'+
+      '<p class="sub">엑셀·구글 시트에서 <b>번호 · 이름 · 성별</b> 세 칸을 복사해서 아래에 붙여 넣으세요. 성별은 비워도 돼요. 직접 칠 때는 띄어쓰기로 구분해도 돼요 (예: <b>3 김하늘 여</b>). 제목 줄이 섞여 있어도 건너뛰어요.</p>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0"><button class="btn sm" id="tpl">엑셀 양식 복사</button><button class="btn sm" id="smp">예시 넣어 보기</button></div>'+
+      '<textarea id="bulk" rows="7" style="font-family:Consolas,monospace" placeholder="번호&#9;이름&#9;성별\n1&#9;김하늘&#9;여\n2&#9;박도윤&#9;남"></textarea>'+
+      '<div id="bpv" class="hide" style="margin-top:10px"><p class="sub" id="bsum"></p><div style="max-height:260px;overflow:auto"><table class="tbl" id="btbl"></table></div></div>'+
+      '<button class="btn main" id="badd" style="margin-top:10px" disabled>등록</button> <span class="sub" id="bmsg"></span>'+
+    '</div>'+
+    '<div class="card"><h2>한 명만 추가</h2>'+
+      '<div class="set-row"><label>번호 <input id="one-no" style="width:64px" value="'+((R.reduce(function(m,s){return Math.max(m,+s.no||0);},0))+1)+'"></label>'+
+      '<label>이름 <input id="one-nm" style="width:140px"></label>'+
+      '<label>성별 <select id="one-gd"><option value=""></option><option>남</option><option>여</option></select></label>'+
+      '<button class="btn main" id="one-add">추가</button></div>'+
+      '<p class="sub">등록하면 학생마다 4자리 코드가 자동으로 생겨요. 코드는 회차가 바뀌어도 그대로예요.</p>'+
+    '</div></div>'+
+    '<div class="card"><h2>등록된 학생 <span class="sub">'+act.length+'명'+(R.length>act.length?' · 전출 '+(R.length-act.length)+'명':'')+'</span></h2>'+
+      '<p class="sub">이름·성별·상태를 고친 뒤 [바뀐 내용 저장]을 눌러 주세요. 전학 간 학생은 상태를 "전출"로 바꾸면 설문과 표에서 빠져요. 코드를 잃어버린 학생만 [새 코드]로 바꿔 주세요.</p>'+
+      (R.length?'<div style="overflow:auto;margin-top:8px"><table class="tbl" id="rt"><tr><th style="width:70px">번호</th><th>이름</th><th style="width:80px">성별</th><th style="width:90px">상태</th><th style="width:80px">코드</th><th style="width:150px"></th></tr>'+
+      R.map(function(s){ return '<tr data-id="'+esc(s.id)+'"'+(s.status==='전출'?' style="opacity:.55"':'')+'><td><input class="no" value="'+esc(s.no)+'" style="width:52px"></td><td><input class="nm" value="'+esc(s.name)+'" style="width:100%"></td>'+
+        '<td><select class="gd"><option value=""></option><option'+(s.gender==='남'?' selected':'')+'>남</option><option'+(s.gender==='여'?' selected':'')+'>여</option></select></td>'+
+        '<td><select class="st"><option'+(s.status!=='전출'?' selected':'')+'>재학</option><option'+(s.status==='전출'?' selected':'')+'>전출</option></select></td>'+
+        '<td><b style="letter-spacing:2px">'+esc(s.code)+'</b></td><td><button class="btn sm" data-rg="'+s.id+'">새 코드</button> <button class="btn sm warn" data-del="'+s.id+'">빼기</button></td></tr>'; }).join('')+'</table></div>'+
+      '<div class="noprint" style="display:flex;gap:6px;margin-top:10px"><span style="flex:1"></span><button class="btn main" id="sv" disabled>바뀐 내용 저장</button></div>'
+      :'<p class="sub" style="margin-top:8px">아직 등록된 학생이 없어요. 위에서 붙여 넣거나 한 명씩 추가해 주세요.</p>')+
+    '</div>'+
+    (act.length?'<div class="card"><h2>코드 카드 <span class="sub">잘라서 나눠 주세요</span></h2><div class="noprint" style="margin-bottom:10px"><button class="btn sm" id="pr">코드 카드만 인쇄</button> <button class="btn sm warn" id="rgAll">모든 코드 새로 만들기</button></div>'+
+    '<div class="codes" id="codes">'+act.map(function(s){ return '<div class="codecard"><div class="n">'+s.no+'. '+esc(s.name)+'</div><div class="c">'+esc(s.code)+'</div><div class="u">7942 친구사이에 들어갈 때 이 숫자를 넣어요</div></div>'; }).join('')+'</div></div>':'');
+
+  /* 붙여 넣기 미리보기 */
+  var bulk=document.getElementById('bulk'), parsed=[];
+  function preview(){
+    parsed=bulk.value.trim()?parseBulk(bulk.value):[];
+    var pv=document.getElementById('bpv'), b=document.getElementById('badd');
+    if(!parsed.length){ pv.classList.add('hide'); b.disabled=true; b.textContent='등록'; return; }
+    pv.classList.remove('hide');
+    var ok=parsed.filter(function(r){return r.ok;}).length;
+    document.getElementById('bsum').textContent='총 '+parsed.length+'줄 중 '+ok+'명 등록 예정'+(parsed.length-ok?', '+(parsed.length-ok)+'줄 제외':'');
+    document.getElementById('btbl').innerHTML='<tr><th>번호</th><th>이름</th><th>성별</th><th>확인</th></tr>'+parsed.map(function(r){
+      return '<tr style="opacity:'+(r.ok?1:.6)+'"><td>'+esc(r.no||'자동')+'</td><td><b>'+esc(r.name)+'</b></td><td>'+esc(r.gender||'-')+'</td><td>'+(r.ok?'<span class="pill on">등록 예정</span>':'<span class="pill" style="background:#fbe7e3;color:#9b3a2b">'+esc(r.why)+'</span>')+'</td></tr>'; }).join('');
+    b.disabled=!ok; b.textContent=ok?ok+'명 등록':'등록';
+  }
+  bulk.oninput=preview;
+  document.getElementById('tpl').onclick=function(){
+    var tpl='번호\t이름\t성별\n1\t\t\n2\t\t\n3\t\t\n';
+    try{ navigator.clipboard.writeText(tpl).then(function(){ toast('양식을 복사했어요. 엑셀에 붙여 넣고 채운 뒤 다시 복사해 오세요'); }); }catch(e){ toast('복사가 막혀 있어요'); }
   };
-  document.getElementById('sv').onclick=function(){ call('saveRoster',T.token,collect()).then(function(x){ T.roster=x; draw(); toast('명단을 저장했어요'); }).catch(fail); };
+  document.getElementById('smp').onclick=function(){ bulk.value='번호\t이름\t성별\n1\t김하늘\t여\n2\t박도윤\t남\n3\t이서아\t여'; preview(); };
+  function addRows(rows,msg){
+    var next=T.roster.reduce(function(m,s){return Math.max(m,+s.no||0);},0);
+    var all=T.roster.map(function(s){return {id:s.id,no:s.no,name:s.name,gender:s.gender,status:s.status};})
+      .concat(rows.map(function(r){ return {no:r.no||(++next),name:r.name,gender:r.gender,status:'재학'}; }));
+    return call('saveRoster',T.token,all).then(function(x){ T.roster=x; draw(); toast(msg); }).catch(fail);
+  }
+  document.getElementById('badd').onclick=function(){
+    var rows=parsed.filter(function(r){return r.ok;}); if(!rows.length) return;
+    this.disabled=true; this.textContent='등록하는 중...';
+    addRows(rows,rows.length+'명을 등록했어요. 코드가 만들어졌어요');
+  };
+  document.getElementById('one-add').onclick=function(){
+    var nm=document.getElementById('one-nm').value.trim(), no=document.getElementById('one-no').value.trim();
+    if(!nm){ toast('이름을 넣어 주세요'); return; }
+    var r=parseBulk((no||'')+'\t'+nm+'\t'+document.getElementById('one-gd').value)[0];
+    if(!r||!r.ok){ toast(r?r.why:'다시 확인해 주세요'); return; }
+    addRows([r],nm+' 학생을 추가했어요');
+  };
+
+  /* 등록된 학생 고치기 */
+  var sv=document.getElementById('sv');
+  v.querySelectorAll('#rt input, #rt select').forEach(function(el){ el.addEventListener('input',function(){ T.rosterDirty=true; if(sv) sv.disabled=false; }); el.addEventListener('change',function(){ T.rosterDirty=true; if(sv) sv.disabled=false; }); });
+  function collect(){ return [].map.call(v.querySelectorAll('#rt tr[data-id]'),function(tr){ return {id:tr.dataset.id,no:tr.querySelector('.no').value,name:tr.querySelector('.nm').value.trim(),gender:tr.querySelector('.gd').value,status:tr.querySelector('.st').value}; }); }
+  if(sv) sv.onclick=function(){ call('saveRoster',T.token,collect()).then(function(x){ T.roster=x; draw(); toast('저장했어요'); }).catch(fail); };
+  v.querySelectorAll('[data-del]').forEach(function(b){ b.onclick=function(){
+    var s=T.roster.filter(function(x){return x.id===b.dataset.del;})[0];
+    modal('<h2>'+esc(s.name)+' 학생 빼기</h2><div class="sub">잘못 넣은 학생일 때만 빼 주세요. 전학 간 학생은 상태를 "전출"로 바꾸는 게 좋아요(지난 회차 기록에 이름이 남아요).</div>',
+      [['취소'],['빼기',function(){ call('saveRoster',T.token,T.roster.filter(function(x){return x.id!==s.id;}).map(function(x){return {id:x.id,no:x.no,name:x.name,gender:x.gender,status:x.status};})).then(function(x){ T.roster=x; draw(); toast('뺐어요'); }).catch(fail); },'warn']]);
+  }; });
   v.querySelectorAll('[data-rg]').forEach(function(b){ b.onclick=function(){ call('regenCodes',T.token,[b.dataset.rg]).then(function(x){ T.roster=x; draw(); toast('새 코드를 만들었어요'); }).catch(fail); }; });
-  document.getElementById('rgAll').onclick=function(){ modal('<h2>모든 코드 새로 만들기</h2><div class="sub">지금 나눠 준 코드는 모두 못 쓰게 돼요. 새 카드를 다시 나눠 줘야 해요.</div>',[['취소'],['새로 만들기',function(){ call('regenCodes',T.token,null).then(function(x){ T.roster=x; draw(); toast('모든 코드를 새로 만들었어요'); }).catch(fail); },'warn']]); };
-  document.getElementById('pr').onclick=function(){
+  var rgAll=document.getElementById('rgAll'); if(rgAll) rgAll.onclick=function(){ modal('<h2>모든 코드 새로 만들기</h2><div class="sub">지금 나눠 준 코드는 모두 못 쓰게 돼요. 새 카드를 다시 나눠 줘야 해요.</div>',[['취소'],['새로 만들기',function(){ call('regenCodes',T.token,null).then(function(x){ T.roster=x; draw(); toast('모든 코드를 새로 만들었어요'); }).catch(fail); },'warn']]); };
+  var pr=document.getElementById('pr'); if(pr) pr.onclick=function(){
     var w=window.open('','_blank');
     if(!w){ toast('팝업이 막혀 있어요'); return; }
     w.document.write('<html><head><meta charset="utf-8"><title>7942 코드 카드</title><style>body{font-family:"Malgun Gothic",sans-serif;margin:10mm}.codes{display:grid;grid-template-columns:repeat(4,1fr)}.codecard{border:1px dashed #999;padding:14px 8px;text-align:center;page-break-inside:avoid}.n{font-size:14px}.c{font-size:32px;font-weight:800;letter-spacing:6px;margin:4px 0}.u{font-size:10px;color:#777}</style></head><body>'+document.getElementById('codes').outerHTML+'</body></html>');
