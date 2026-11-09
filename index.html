@@ -59,6 +59,15 @@
   .seg button.on.o{border-color:var(--o-line);background:var(--o-soft);color:var(--o)}
   .seg button.on.t{border-color:var(--t-line);background:var(--t-soft);color:var(--t)}
   .seg button.on.x{border-color:var(--x-line);background:var(--x-soft);color:var(--x)}
+  /* 5점 척도 */
+  .legend .s5,.seg button.on.s5{background:#CDEFE0;color:#1F5240} .legend .s4,.seg button.on.s4{background:#E6F6EE;color:#2E6E58}
+  .legend .s3,.seg button.on.s3{background:#FFF1C9;color:#5C4510} .legend .s2,.seg button.on.s2{background:#FFEDE6;color:#8A3B28} .legend .s1,.seg button.on.s1{background:#FFD5CA;color:#7A2F20}
+  .seg button.on.s5,.seg button.on.s4{border-color:#3E9A7A} .seg button.on.s3{border-color:#D9A928} .seg button.on.s2,.seg button.on.s1{border-color:#D46A52}
+  .friend.five{flex-wrap:wrap}
+  .friend.five .seg{gap:5px}
+  .friend.five .seg button{width:50px;height:54px;font-size:22px}
+  .friend.five .seg button small{font-size:10px;letter-spacing:-0.5px}
+  @media (max-width:430px){ .friend.five .seg{width:100%;justify-content:space-between} .friend.five .seg button{flex:1;width:auto} }
   .slot{border-radius:22px;padding:16px;margin:12px 0;background:#fff;box-shadow:0 4px 0 var(--shadow)}
   .slot label{font-family:var(--round);font-size:18px;display:block;margin-bottom:8px}
   .slot select{margin-bottom:8px}
@@ -117,7 +126,7 @@
 <script>
 var KEY_NAME='7942_key';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.5.1', NEED_SHELL=1;
+var APP_VER='1.6.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -147,7 +156,7 @@ var DEMO = {
       friends:names.map(function(n,i){return {id:'S'+i,name:n[0],gender:n[1]};}),
       settings:{title:'우리반 친구들은?!',intro:'우리 반 친구들과 함께 지내면서 느낀 점을 솔직하게 써 보세요. 여러분이 쓴 내용은 선생님만 볼 수 있어요.',
         questions:['우리 반은 "나"에게 어떤 반인가요?','나는 우리 반 친구들에게 어떤 아이일까요?','지금까지 지내면서 좋았던 점은?','지금까지 지내면서 어려웠던 점은?','우리 반에게 바라는 점은 무엇인가요?'],
-        requireAllRelations:true,praiseMode:'gender',praiseMale:1,praiseFemale:1,praiseAny:2,praiseRequired:true,
+        requireAllRelations:true,relScale:Q.has('five')?5:3,praiseMode:'gender',praiseMale:1,praiseFemale:1,praiseAny:2,praiseRequired:true,
         praiseQuestion:'이 친구가 친구 관계에서 칭찬받을 점은 무엇인가요? 이 친구와 친해지고 싶은 이유는?',
         conflictMax:2,conflictQuestion:'이 친구가 친구 관계에서 고쳐야 할 점은 무엇인가요? 이 친구와 사이가 좋지 않은 이유는?',askTeacherMessage:true}};
   },
@@ -279,14 +288,17 @@ function render(){
   if(kind==='relations'){
     var fr=S.info.friends;
     var dots=['#CDEFE0','#FFE0D6','#FFF0C2','#E3DAFB'];
+    var five=Number(st.relScale)===5;
+    var BTN=five?[['5','5','아주 친해'],['4','4','친해'],['3','3','보통'],['2','2','조금 불편'],['1','1','안 좋아']]:[['o','○','친해요'],['t','△','보통'],['x','X','안 좋아요']];
     body='<div class="card"><h2>나와 친구들은 어떤 사이?</h2><div class="legend">'+
-      '<span style="background:var(--o-soft);color:var(--o)">○ 함께 있고 싶어! 친해!</span>'+
+      (five?'<span class="s5">5 아주 친해! 늘 같이 있고 싶어</span><span class="s4">4 친해</span><span class="s3">3 보통이야</span><span class="s2">2 조금 불편해</span><span class="s1">1 사이가 안 좋아</span>'
+       :'<span style="background:var(--o-soft);color:var(--o)">○ 함께 있고 싶어! 친해!</span>'+
       '<span style="background:var(--t-soft);color:var(--t)">△ 그저 그래</span>'+
-      '<span style="background:var(--x-soft);color:var(--x)">X 사이가 안 좋아</span></div>'+
+      '<span style="background:var(--x-soft);color:var(--x)">X 사이가 안 좋아</span>')+'</div>'+
       '<div class="count" id="relCount"></div></div>'+
       '<div>'+fr.map(function(f,fi){ var v=S.data.rel[f.id]||'';
-        return '<div class="friend" data-id="'+f.id+'"><div class="dot" aria-hidden="true" style="background:'+dots[fi%4]+'">'+esc(f.name.charAt(f.name.length>2?1:0))+'</div><div class="nm">'+esc(f.name)+'</div><div class="seg">'+
-        [['o','○','친해요'],['t','△','보통'],['x','X','안 좋아요']].map(function(b){ return '<button class="'+b[0]+(v===b[0]?' on':'')+'" data-v="'+b[0]+'">'+b[1]+'<small>'+b[2]+'</small></button>'; }).join('')+
+        return '<div class="friend'+(five?' five':'')+'" data-id="'+f.id+'"><div class="dot" aria-hidden="true" style="background:'+dots[fi%4]+'">'+esc(f.name.charAt(f.name.length>2?1:0))+'</div><div class="nm">'+esc(f.name)+'</div><div class="seg">'+
+        BTN.map(function(b){ return '<button class="'+(five?'s'+b[0]:b[0])+(v===b[0]?' on':'')+'" data-v="'+b[0]+'" aria-label="'+b[2]+'">'+b[1]+'<small>'+b[2]+'</small></button>'; }).join('')+
         '</div></div>'; }).join('')+'</div>';
   }
   if(kind==='praise'){
@@ -311,10 +323,10 @@ function render(){
   }
   if(kind==='review'){
     var nameOf={}; S.info.friends.forEach(function(f){ nameOf[f.id]=f.name; });
-    function names(v){ return S.info.friends.filter(function(f){return S.data.rel[f.id]===v;}).map(function(f){return f.name;}).join(', ')||'없음'; }
+    function names(v){ var want=v==='o'?['o','4','5']:['x','1','2']; return S.info.friends.filter(function(f){return want.indexOf(S.data.rel[f.id])>=0;}).map(function(f){return f.name;}).join(', ')||'없음'; }
     body='<div class="card"><h2>마지막으로 확인해요</h2><div class="sub">제출하면 고칠 수 없어요. 고칠 곳이 있으면 [이전]을 눌러 주세요.</div><dl class="review">'+
       st.questions.map(function(q,i){ return '<dt>'+(i+1)+'. '+esc(q)+'</dt><dd>'+esc(S.data.answers[i]||'(비어 있음)')+'</dd>'; }).join('')+
-      '<dt>○ 친해요</dt><dd>'+esc(names('o'))+'</dd><dt>X 사이가 안 좋아요</dt><dd>'+esc(names('x'))+'</dd>'+
+      (Number(st.relScale)===5?'<dt>친해요 (4~5점)</dt><dd>'+esc(names('o'))+'</dd><dt>불편하거나 사이가 안 좋아요 (1~2점)</dt><dd>'+esc(names('x'))+'</dd>':'<dt>○ 친해요</dt><dd>'+esc(names('o'))+'</dd><dt>X 사이가 안 좋아요</dt><dd>'+esc(names('x'))+'</dd>')+
       (S.steps.indexOf('praise')>=0?'<dt>칭찬하고 싶은 친구</dt><dd>'+esc(S.data.praise.filter(function(p){return p&&p.id;}).map(function(p){return nameOf[p.id];}).join(', ')||'없음')+'</dd>':'')+
       (S.steps.indexOf('conflict')>=0?'<dt>사이가 좋지 않은 친구</dt><dd>'+esc(S.data.conflict.filter(function(p){return p&&p.id;}).map(function(p){return nameOf[p.id];}).join(', ')||'없음')+'</dd>':'')+
       '</dl></div>';
@@ -365,7 +377,7 @@ function checkStep(kind){
     if(miss.length){
       miss.forEach(function(f){ var r=app.querySelector('.friend[data-id="'+f.id+'"]'); if(r) r.classList.add('miss'); });
       var first=app.querySelector('.friend.miss'); if(first) first.scrollIntoView({behavior:'smooth',block:'center'});
-      return '모든 친구에게 ○, △, X 중 하나를 표시해 주세요. (빨간 이름 '+miss.length+'명)';
+      return (Number(st.relScale)===5?'모든 친구에게 1~5 중 하나를 골라 주세요.':'모든 친구에게 ○, △, X 중 하나를 표시해 주세요.')+' (빨간 이름 '+miss.length+'명)';
     }
   }
   if(kind==='praise'){

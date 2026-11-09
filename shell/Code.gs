@@ -31,6 +31,7 @@ function defaultSettings_() {
       '우리 반에게 바라는 점은 무엇인가요?'
     ],
     requireAllRelations: true,
+    relScale: 3,            // 3: ○△X / 5: 5점 척도
     praiseMode: 'gender',   // gender: 남·여 따로 / any: 성별 상관없이 / off: 묻지 않음
     praiseMale: 1,
     praiseFemale: 1,
@@ -43,7 +44,7 @@ function defaultSettings_() {
   };
 }
 
-var SHELL_VER = 1;
+var SHELL_VER = 2;   // 2판: 5단계 척도, 설정 전체를 학생 화면에 전달
 
 /** 처음 한 번 편집기에서 [실행] — 권한을 받고 시트를 준비합니다 */
 function start() {
@@ -212,15 +213,9 @@ function studentLogin(code) {
   var token = Utilities.getUuid();
   cache.put('st_' + token, JSON.stringify({ sid: me.id, rid: round.id }), 7200);
 
-  var st = round.settings;
   return {
     token: token, rid: round.id, name: me.name, roundName: round.name, submitted: submitted, friends: friends,
-    settings: {
-      title: st.title, intro: st.intro, questions: st.questions, requireAllRelations: st.requireAllRelations,
-      praiseMode: st.praiseMode, praiseMale: st.praiseMale, praiseFemale: st.praiseFemale, praiseAny: st.praiseAny,
-      praiseRequired: st.praiseRequired, praiseQuestion: st.praiseQuestion,
-      conflictMax: st.conflictMax, conflictQuestion: st.conflictQuestion, askTeacherMessage: st.askTeacherMessage
-    }
+    settings: round.settings   // 설정에는 비밀이 없어서 통째로 보냄 (새 설정이 생겨도 껍데기를 안 바꿔도 되게)
   };
 }
 
@@ -242,7 +237,7 @@ function studentSubmit(token, data) {
     var rel = {};
     Object.keys(data.rel || {}).forEach(function (k) {
       var v = data.rel[k];
-      if (valid[k] && (v === 'o' || v === 't' || v === 'x')) rel[k] = v;
+      if (valid[k] && /^(o|t|x|[1-5])$/.test(String(v))) rel[k] = String(v);
     });
     function picks(arr, max) {
       var seen = {};
@@ -410,6 +405,7 @@ function exportMatrix(token, rid) {
   var round = readRounds_().filter(function (r) { return r.id === rid; })[0];
   var roster = readRoster_().filter(function (s) { return s.status !== '전출'; });
   var resp = {}; readResponses_(rid).forEach(function (r) { resp[r.sid] = r; });
+  function nv(v) { v = String(v || ''); return v === '5' || v === '4' ? 'o' : v === '3' ? 't' : v === '2' || v === '1' ? 'x' : v; }
   var n = roster.length;
   var name = ('분석표_' + round.name).slice(0, 90);
   var ss = ss_();
@@ -423,9 +419,9 @@ function exportMatrix(token, rid) {
     var r = resp[a.id];
     var row = [a.name], colors = ['#ffffff'], po = 0, ne = 0;
     roster.forEach(function (b) {
-      var v = r && r.rel[b.id];
-      var back = resp[b.id] && resp[b.id].rel[a.id];
-      var cell = a.id === b.id ? '' : v === 'o' ? 'o' : v === 'x' ? 'x' : '';
+      var raw = r && r.rel[b.id], v = nv(raw);
+      var back = nv(resp[b.id] && resp[b.id].rel[a.id]);
+      var cell = a.id === b.id ? '' : /^[1-5]$/.test(String(raw || '')) ? Number(raw) : v === 'o' ? 'o' : v === 'x' ? 'x' : '';
       if (v === 'o') po++; if (v === 'x') ne++;
       var c = '#ffffff';
       if (a.id === b.id) c = '#d9d9d9';
@@ -441,7 +437,7 @@ function exportMatrix(token, rid) {
   var oRow = ['○ 받은 수'], xRow = ['X 받은 수'], iRow = ['관심도'], lRow = ['호감도'];
   roster.forEach(function (b) {
     var o = 0, x = 0;
-    roster.forEach(function (a) { var r = resp[a.id]; if (r && a.id !== b.id) { if (r.rel[b.id] === 'o') o++; if (r.rel[b.id] === 'x') x++; } });
+    roster.forEach(function (a) { var r = resp[a.id]; if (r && a.id !== b.id) { var v = nv(r.rel[b.id]); if (v === 'o') o++; if (v === 'x') x++; } });
     oRow.push(o); xRow.push(x); iRow.push(o + x); lRow.push(o - x);
   });
   [oRow, xRow, iRow, lRow].forEach(function (r) { r.push('', ''); grid.push(r); });
