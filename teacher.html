@@ -247,7 +247,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.0.0', NEED_SHELL=1;
+var APP_VER='2.0.1', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -1003,7 +1003,7 @@ function askAI(prompt,onStep){
     return Promise.race([callOne(name,prompt),t]).then(function(text){
       if(mode==='trial') lsSet('7942_ai_used_'+(apiKey()||'demo'),String(aiUsed()+1));
       return parseAIJSON(text);
-    },function(e){ var m=String(e&&e.message||e); if(/api.?key.*(not valid|invalid|expired)|API_KEY_INVALID/i.test(m)) throw new Error('BAD_KEY'); if(SKIP_RE.test(m)||m==='timeout') return next(e); throw e; });
+    },function(e){ var m=String(e&&e.message||e); if(/api.?key.*(not valid|invalid|expired)|API_KEY_INVALID|invalid authentication credentials|ACCESS_TOKEN_TYPE_UNSUPPORTED|\[401\]/i.test(m)) throw new Error('BAD_KEY'); if(SKIP_RE.test(m)||m==='timeout') return next(e); throw e; });
   }
   return next();
 }
@@ -1158,12 +1158,12 @@ function renderAI(r,one){
 }
 function keyBox(){
   return '<div class="card" style="background:#FFF8EE;margin:12px 0 0"><h3 style="margin-top:0">내 Gemini 키</h3>'+
-    '<p class="sub">Google AI Studio(aistudio.google.com)에 구글로 로그인 → "Get API key" → "API 키 만들기"로 무료 키(AIza…)를 받아 붙여 넣으세요. 키는 이 컴퓨터에만 저장돼요.</p>'+
-    '<div class="set-row"><input type="password" class="kIn" placeholder="AIza... 붙여 넣기" style="flex:1;min-width:220px" value="'+esc(aiKey())+'"><button class="btn main sm kSave">저장하고 분석</button>'+(aiKey()?'<button class="btn sm warn kDel">키 지우기</button>':'')+'</div></div>';
+    '<p class="sub">Google AI Studio(aistudio.google.com)에 구글로 로그인 → "Get API key" → "API 키 만들기"로 무료 키를 받아 붙여 넣으세요. 키는 AIza… 또는 AQ.… 로 시작해요(요즘 새로 만든 키는 AQ.…). 키는 이 컴퓨터에만 저장돼요.</p>'+
+    '<div class="set-row"><input type="password" class="kIn" placeholder="AIza… 또는 AQ.… 붙여 넣기" style="flex:1;min-width:220px" value="'+esc(aiKey())+'"><button class="btn main sm kSave">저장하고 분석</button>'+(aiKey()?'<button class="btn sm warn kDel">키 지우기</button>':'')+'</div></div>';
 }
 function bindKeyBox(box,after){
   var s=box.querySelector('.kSave'), d=box.querySelector('.kDel');
-  if(s) s.onclick=function(){ var k=box.querySelector('.kIn').value.trim(); if(!/^AIza/.test(k)){ toast('AIza로 시작하는 키를 넣어 주세요'); return; } lsSet('7942_gemini_key',k); toast('키를 저장했어요'); if(after) after(); };
+  if(s) s.onclick=function(){ var k=box.querySelector('.kIn').value.trim(); if(!/^(AIza|AQ\.)\S{20,}$/.test(k)){ toast('AIza 또는 AQ. 로 시작하는 키를 통째로 넣어 주세요'); return; } lsSet('7942_gemini_key',k); toast('키를 저장했어요'); if(after) after(); };
   if(d) d.onclick=function(){ lsSet('7942_gemini_key',null); toast('키를 지웠어요'); draw(); };
 }
 function aiStatusLine(){
