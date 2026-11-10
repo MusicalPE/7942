@@ -94,7 +94,7 @@
   .gcard h3{margin:0 0 6px;font-size:15px}
   .ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
   .gdot{display:inline-block;width:12px;height:12px;border-radius:6px;vertical-align:-1px;margin-right:6px}
-  .soc{width:100%;max-width:760px;display:block;margin:0 auto}
+  .soc{width:100%;max-width:900px;max-height:760px;display:block;margin:0 auto}
   .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;margin:8px 0}
   .legend span i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -247,7 +247,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.0.1', NEED_SHELL=1;
+var APP_VER='2.1.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -860,8 +860,8 @@ function vGroups(v){
   var big=G.groups.filter(function(g){return g.length>=3;}).length;
   var h='<div class="card"><h2>친구 그룹 <span class="sub">서로 ○를 누른 학생끼리 자동으로 묶었어요</span></h2>'+
     '<div class="sub">그룹 = 안에 있는 학생 모두가 서로서로 ○를 누른 무리예요. 한 학생이 여러 무리에 걸치면, 더 큰 무리 쪽에 넣었어요(아래 [겹치는 무리 모두 보기]에서 전부 볼 수 있어요). 둘만 서로 ○이면 "짝"으로 보여 줘요. 아직 안 낸 학생은 빠져요.</div></div>';
-  h+='<div class="card"><h2>관계 그림</h2><div class="noprint" style="margin-bottom:6px"><label><input type="checkbox" id="sx"'+(T.socX!==false?' checked':'')+'> 서로 X 선</label> <label style="margin-left:10px"><input type="checkbox" id="sy"'+(T.socY?' checked':'')+'> 한쪽 ○ 한쪽 X 선</label></div>'+
-    socSvg(A,G)+'<div class="legend" style="justify-content:center"><span><i style="background:#3d9a6a"></i>서로 ○</span><span><i style="background:#c2513f"></i>서로 X</span><span><i style="background:#e0b23c"></i>한쪽 ○, 한쪽 X</span><span>점 색 = 그룹</span></div></div>';
+  h+='<div class="card"><h2>관계 그림</h2><div class="noprint" style="margin-bottom:6px"><label><input type="checkbox" id="sx"'+(T.socX===true?' checked':'')+'> 서로 X 선</label> <label style="margin-left:10px"><input type="checkbox" id="sy"'+(T.socY?' checked':'')+'> 한쪽 ○ 한쪽 X 선</label></div>'+
+    socSvg(A,G)+'<div class="legend" style="justify-content:center"><span><i style="background:#3d9a6a"></i>서로 ○</span><span><i style="background:#c2513f"></i>서로 X</span><span><i style="background:#e0b23c"></i>한쪽 ○, 한쪽 X</span><span>점 색 = 그룹</span><span><b>굵은 이름</b> = 두 무리를 서로 ○로 이어 주는 학생</span><span>점에 마우스를 올리면 그 학생의 선만 진하게</span><span>무리 밖 점 = 서로 ○ 친구가 없는 학생</span></div></div>';
   h+='<div class="card"><h2>그룹 '+big+'개 · 짝 '+(G.groups.length-big)+'개</h2><div class="ggrid">'+
     G.groups.map(function(g,k){
       var xs=G.between.filter(function(b){return b.i===k||b.j===k;});
@@ -880,27 +880,92 @@ function vGroups(v){
   document.getElementById('sy').onchange=function(){ T.socY=this.checked; draw(); };
 }
 
+document.addEventListener('mouseover',function(e){ var c=e.target.closest&&e.target.closest('.soc [data-n]'); if(!c) return; var id=c.getAttribute('data-n'), svg=c.closest('svg');
+  svg.querySelectorAll('line').forEach(function(l){ var on=l.getAttribute('data-a')===id||l.getAttribute('data-b')===id; l.setAttribute('stroke-opacity',on?1:0.06); }); });
+document.addEventListener('mouseout',function(e){ var c=e.target.closest&&e.target.closest('.soc [data-n]'); if(!c) return;
+  c.closest('svg').querySelectorAll('line').forEach(function(l){ l.setAttribute('stroke-opacity',l.getAttribute('data-o')); }); });
 function socSvg(A,G){
-  var order=[]; G.parts.forEach(function(g){ g.forEach(function(id){order.push(id);}); });
-  var n=order.length; if(!n) return '';
-  var W=760,C=380,R=275,pos={};
-  order.forEach(function(id,i){ var t=-Math.PI/2+i*2*Math.PI/n; pos[id]={x:C+R*Math.cos(t),y:C+R*Math.sin(t),t:t}; });
+  // 그룹은 한 덩어리(작은 원)로, 그룹 사이는 이어 주는 학생 쪽을 마주 보게 배치
+  var clusters=G.parts.map(function(g){ return g.slice(); });
+  var inPart={}; G.parts.forEach(function(g){ g.forEach(function(id){ inPart[id]=1; }); });
+  A.studs.forEach(function(s){ if(!inPart[s.id]) clusters.push([s.id]); });
+  var cOf={}; clusters.forEach(function(c,k){ c.forEach(function(id){ cOf[id]=k; }); });
+  var ids=A.studs.map(function(s){ return s.id; }), n=ids.length; if(!n) return '';
+  function rel(a,b){ var r=A.resp[a]; return r?r.rel[b]:''; }
+  function wt(a,b){ var p=A.pairs[a+'|'+b]; if(p==='g') return 3; return (rel(a,b)==='o'?1:0)+(rel(b,a)==='o'?1:0); }
+  var K=clusters.length, CW=[], CX=[];
+  for(var i=0;i<K;i++){ CW.push(new Array(K).fill(0)); CX.push(new Array(K).fill(0)); }
+  for(var x=0;x<n;x++) for(var y=x+1;y<n;y++){ var a=ids[x], b=ids[y], ca=cOf[a], cb=cOf[b]; if(ca===cb) continue;
+    var w=wt(a,b); CW[ca][cb]+=w; CW[cb][ca]+=w; if(A.pairs[a+'|'+b]==='r'){ CX[ca][cb]++; CX[cb][ca]++; } }
+  var R=clusters.map(function(c){ return c.length<2?0:Math.max(34,c.length*52/(2*Math.PI)); });
+  var B=R.map(function(r,k){ return r+(clusters[k].length<2?34:44); });       // 이름까지 포함한 크기
+  // 처음 자리: 큰 그룹부터 나선형으로 (늘 같은 그림이 나오게)
+  var P=clusters.map(function(c,k){ var t=k*2.4, d=60+k*26; return {x:Math.cos(t)*d,y:Math.sin(t)*d}; });
+  for(var it=0;it<600;it++){
+    var F=P.map(function(){ return {x:0,y:0}; }), cool=1-it/600;
+    for(var i2=0;i2<K;i2++) for(var j2=i2+1;j2<K;j2++){
+      var dx=P[j2].x-P[i2].x, dy=P[j2].y-P[i2].y, d=Math.sqrt(dx*dx+dy*dy)||0.01, ux=dx/d, uy=dy/d, f=0, need=B[i2]+B[j2]+70;
+      if(d<need) f-=(need-d)*0.5;                                  // 겹치지 않게
+      f-=6000/(d*d);                            // 서로 밀기 (X가 있으면 조금 더)
+      if(CW[i2][j2]) f+=(d-need)*0.02*Math.min(CW[i2][j2],6);      // ○로 이어진 그룹은 가까이
+      F[i2].x+=ux*f; F[i2].y+=uy*f; F[j2].x-=ux*f; F[j2].y-=uy*f;
+    }
+    for(var k3=0;k3<K;k3++){ var lone=!clusters[k3].some(function(id){ return CW[k3].some(function(v){ return v>0; }); });
+      var g=lone?0.004:0.012; F[k3].x-=P[k3].x*g; F[k3].y-=P[k3].y*g;
+      var m=Math.sqrt(F[k3].x*F[k3].x+F[k3].y*F[k3].y), lim=12*cool+1; if(m>lim){ F[k3].x*=lim/m; F[k3].y*=lim/m; }
+      P[k3].x+=F[k3].x; P[k3].y+=F[k3].y; }
+  }
+  for(var it2=0;it2<300;it2++){ var moved=false;
+    for(var i5=0;i5<K;i5++) for(var j5=i5+1;j5<K;j5++){ var dx5=P[j5].x-P[i5].x, dy5=P[j5].y-P[i5].y, d5=Math.sqrt(dx5*dx5+dy5*dy5)||0.01, need5=B[i5]+B[j5]+60;
+      if(d5<need5){ var push=(need5-d5)/2+0.5; P[i5].x-=dx5/d5*push; P[i5].y-=dy5/d5*push; P[j5].x+=dx5/d5*push; P[j5].y+=dy5/d5*push; moved=true; } }
+    if(!moved) break; }
+  // 그룹 안 자리: 다른 그룹과 이어진 학생이 그 그룹 쪽을 보게
+  // 무리와 무리 사이마다 서로 ○가 가장 많은 한 쌍을 '이어 주는 학생'으로
+  var pos={}, bridge={}, keyLine={}, best2={};
+  ids.forEach(function(a){ ids.forEach(function(b){ if(a<b && cOf[a]!==cOf[b] && A.pairs[a+'|'+b]==='g'){
+    var ka=cOf[a], kb=cOf[b], key=Math.min(ka,kb)+'-'+Math.max(ka,kb);
+    var deg=function(x,other){ return ids.filter(function(o){ return cOf[o]===other && A.pairs[x+'|'+o]==='g'; }).length; };
+    var sc=deg(a,kb)+deg(b,ka); if(!best2[key]||sc>best2[key].sc) best2[key]={sc:sc,a:a,b:b}; } }); });
+  Object.keys(best2).forEach(function(key){ var x=best2[key]; keyLine[x.a+'|'+x.b]=keyLine[x.b+'|'+x.a]=1;
+    if(clusters[cOf[x.a]].length>=2) bridge[x.a]=1; if(clusters[cOf[x.b]].length>=2) bridge[x.b]=1; });
+  clusters.forEach(function(c,k){
+    if(c.length<2){ pos[c[0]]={x:P[k].x,y:P[k].y,t:Math.PI/2,c:k}; return; }
+    var pref=c.map(function(id){ var sx=0,sy=0,sw=0; ids.forEach(function(o){ if(cOf[o]===k) return; var w=wt(id,o); if(!w) return; sx+=(P[cOf[o]].x-P[k].x)*w; sy+=(P[cOf[o]].y-P[k].y)*w; sw+=w; });
+      return sw?{a:Math.atan2(sy,sx),w:sw}:null; });
+    var m=c.length, best=null, bestC=1e9;
+    for(var s=0;s<36;s++){ var off=s*2*Math.PI/36/m, free=[], as={}, cost=0;
+      for(var q=0;q<m;q++) free.push(q);
+      c.map(function(id,i){ return i; }).filter(function(i){ return pref[i]; }).sort(function(a,b){ return pref[b].w-pref[a].w; }).forEach(function(i){
+        var bi=-1,bd=9; free.forEach(function(q,fi){ var ang=off+q*2*Math.PI/m, d=Math.abs(Math.atan2(Math.sin(ang-pref[i].a),Math.cos(ang-pref[i].a))); if(d<bd){ bd=d; bi=fi; } });
+        as[i]=free[bi]; free.splice(bi,1); cost+=bd*pref[i].w; });
+      c.forEach(function(id,i){ if(as[i]==null) as[i]=free.shift(); });
+      if(cost<bestC){ bestC=cost; best={off:off,as:as}; } }
+    c.forEach(function(id,i){ var t=best.off+best.as[i]*2*Math.PI/m; pos[id]={x:P[k].x+R[k]*Math.cos(t),y:P[k].y+R[k]*Math.sin(t),t:t,c:k}; });
+  });
+  // 그림 크기 맞추기
+  var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; P.forEach(function(p,k){ x0=Math.min(x0,p.x-B[k]); y0=Math.min(y0,p.y-B[k]); x1=Math.max(x1,p.x+B[k]); y1=Math.max(y1,p.y+B[k]); });
+  x0-=16; y0-=16; x1+=16; y1+=16;
+  var bg='';
+  clusters.forEach(function(c,k){ if(c.length<2) return; var col=GCOL[(G.gOf[c[0]]||0)%GCOL.length];
+    bg+='<circle cx="'+P[k].x.toFixed(1)+'" cy="'+P[k].y.toFixed(1)+'" r="'+(R[k]+20).toFixed(1)+'" fill="'+col+'" fill-opacity="0.09" stroke="'+col+'" stroke-opacity="0.35" stroke-dasharray="4 4"/>'+
+      '<text x="'+P[k].x.toFixed(1)+'" y="'+(P[k].y+5).toFixed(1)+'" text-anchor="middle" font-size="15" fill="'+col+'" fill-opacity="0.45" font-weight="700">'+(c.length>=3?'그룹 ':'짝 ')+(G.gOf[c[0]]+1)+'</text>'; });
   var lines='';
-  for(var i=0;i<n;i++) for(var j=i+1;j<n;j++){
-    var a=order[i],b=order[j],p=A.pairs[a+'|'+b]; if(!p) continue;
-    if(p==='r'&&T.socX===false) continue; if(p==='y'&&!T.socY) continue;
-    var col=p==='g'?'#3d9a6a':p==='r'?'#c2513f':'#e0b23c', w=p==='g'?2.2:1.8;
-    var mx=(pos[a].x+pos[b].x)/2, my=(pos[a].y+pos[b].y)/2, qx=C+(mx-C)*0.35, qy=C+(my-C)*0.35;
-    lines+='<path d="M'+pos[a].x.toFixed(1)+' '+pos[a].y.toFixed(1)+' Q'+qx.toFixed(1)+' '+qy.toFixed(1)+' '+pos[b].x.toFixed(1)+' '+pos[b].y.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+w+'" stroke-opacity="'+(p==='g'?0.8:0.75)+'"'+(p==='y'?' stroke-dasharray="5 4"':'')+'/>';
+  for(var i4=0;i4<n;i4++) for(var j4=i4+1;j4<n;j4++){
+    var a4=ids[i4],b4=ids[j4],p4=A.pairs[a4+'|'+b4]; if(!p4) continue;
+    if(p4==='r'&&T.socX!==true) continue; if(p4==='y'&&!T.socY) continue;
+    var col4=p4==='g'?'#3d9a6a':p4==='r'?'#c2513f':'#e0b23c', same4=cOf[a4]===cOf[b4], br4=keyLine[a4+'|'+b4], w4=p4==='g'?(same4?2.8:(br4?1.8:1)):1.6, op4=p4==='g'?(same4?0.9:(br4?0.6:0.12)):0.6;
+    lines+='<line data-a="'+a4+'" data-b="'+b4+'" data-o="'+op4+'" x1="'+pos[a4].x.toFixed(1)+'" y1="'+pos[a4].y.toFixed(1)+'" x2="'+pos[b4].x.toFixed(1)+'" y2="'+pos[b4].y.toFixed(1)+'" stroke="'+col4+'" stroke-width="'+w4+'" stroke-opacity="'+op4+'"'+(p4==='y'?' stroke-dasharray="5 4"':'')+'/>';
   }
   var nodes='';
-  order.forEach(function(id){ var P=pos[id], k=G.gOf[id], resp=!!A.resp[id];
+  ids.forEach(function(id){ var Q=pos[id], k=G.gOf[id], resp=!!A.resp[id], c=clusters[Q.c];
     var fill=k!=null?GCOL[k%GCOL.length]:(resp?'#b9bcc2':'#fff');
-    var lx=C+(R+16)*Math.cos(P.t), ly=C+(R+16)*Math.sin(P.t), anc=Math.cos(P.t)>0.2?'start':Math.cos(P.t)<-0.2?'end':'middle';
-    nodes+='<circle cx="'+P.x.toFixed(1)+'" cy="'+P.y.toFixed(1)+'" r="8" fill="'+fill+'" stroke="'+(resp?'#fff':'#9aa0a8')+'" stroke-width="2"'+(resp?'':' stroke-dasharray="2 2"')+'/>'+
-      '<text x="'+lx.toFixed(1)+'" y="'+(ly+4).toFixed(1)+'" text-anchor="'+anc+'" font-size="13" fill="'+(resp?'#24272c':'#9aa0a8')+'">'+esc(A.st[id].s.name)+'</text>';
+    var lx,ly,anc;
+    if(c.length<2){ lx=Q.x; ly=Q.y+24; anc='middle'; }
+    else { lx=Q.x+15*Math.cos(Q.t); ly=Q.y+15*Math.sin(Q.t)+4; anc=Math.cos(Q.t)>0.3?'start':Math.cos(Q.t)<-0.3?'end':'middle'; if(Math.sin(Q.t)>0.7) ly+=6; if(Math.sin(Q.t)<-0.7) ly-=4; }
+    nodes+='<circle data-n="'+id+'" style="cursor:pointer" cx="'+Q.x.toFixed(1)+'" cy="'+Q.y.toFixed(1)+'" r="'+(bridge[id]?10:8)+'" fill="'+fill+'" stroke="'+(resp?(bridge[id]?'#2E2A26':'#fff'):'#9aa0a8')+'" stroke-width="2"'+(resp?'':' stroke-dasharray="2 2"')+'/>'+
+      '<text x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" text-anchor="'+anc+'" font-size="13" paint-order="stroke" stroke="#fff" stroke-width="3" fill="'+(resp?'#24272c':'#9aa0a8')+'"'+(bridge[id]?' font-weight="700"':'')+'>'+esc(A.st[id].s.name)+'</text>';
   });
-  return '<svg class="soc" viewBox="0 0 '+W+' '+W+'" xmlns="http://www.w3.org/2000/svg">'+lines+nodes+'</svg>';
+  return '<svg class="soc" viewBox="'+x0.toFixed(0)+' '+y0.toFixed(0)+' '+(x1-x0).toFixed(0)+' '+(y1-y0).toFixed(0)+'" xmlns="http://www.w3.org/2000/svg">'+bg+lines+nodes+'</svg>';
 }
 
 /* ───────── PC 오른쪽 분석 칸 ───────── */
