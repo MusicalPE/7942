@@ -225,6 +225,8 @@
   .sr{margin:8px 0 0;padding-left:16px;font-size:13px;color:#5E5750}
   .sai{margin-top:8px;background:#F3EFFC;border-radius:10px;padding:7px 10px;font-size:13px;line-height:1.5}
   .sai b{color:#5A47A8;margin-right:4px}
+  .gcard.gsel{outline:3px solid #FFB43B;outline-offset:2px}
+  .soc line{pointer-events:none}
   /* ───── 인쇄 (마지막에 두어 화면 꾸밈보다 앞서게) ───── */
   @page{size:A4 landscape;margin:10mm}
   @media print{
@@ -247,7 +249,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.1.0', NEED_SHELL=1;
+var APP_VER='2.2.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -861,11 +863,11 @@ function vGroups(v){
   var h='<div class="card"><h2>친구 그룹 <span class="sub">서로 ○를 누른 학생끼리 자동으로 묶었어요</span></h2>'+
     '<div class="sub">그룹 = 안에 있는 학생 모두가 서로서로 ○를 누른 무리예요. 한 학생이 여러 무리에 걸치면, 더 큰 무리 쪽에 넣었어요(아래 [겹치는 무리 모두 보기]에서 전부 볼 수 있어요). 둘만 서로 ○이면 "짝"으로 보여 줘요. 아직 안 낸 학생은 빠져요.</div></div>';
   h+='<div class="card"><h2>관계 그림</h2><div class="noprint" style="margin-bottom:6px"><label><input type="checkbox" id="sx"'+(T.socX===true?' checked':'')+'> 서로 X 선</label> <label style="margin-left:10px"><input type="checkbox" id="sy"'+(T.socY?' checked':'')+'> 한쪽 ○ 한쪽 X 선</label></div>'+
-    socSvg(A,G)+'<div class="legend" style="justify-content:center"><span><i style="background:#3d9a6a"></i>서로 ○</span><span><i style="background:#c2513f"></i>서로 X</span><span><i style="background:#e0b23c"></i>한쪽 ○, 한쪽 X</span><span>점 색 = 그룹</span><span><b>굵은 이름</b> = 두 무리를 서로 ○로 이어 주는 학생</span><span>점에 마우스를 올리면 그 학생의 선만 진하게</span><span>무리 밖 점 = 서로 ○ 친구가 없는 학생</span></div></div>';
+    '<div class="sub noprint" style="text-align:center">그룹(색 원)이나 아래 그룹 카드를 누르면 그 그룹만 잘 보여요. <a href="#" id="socHint" onclick="return false" style="visibility:hidden">전체 보기</a></div>'+socSvg(A,G)+'<div class="legend" style="justify-content:center"><span><i style="background:#3d9a6a"></i>서로 ○</span><span><i style="background:#c2513f"></i>서로 X</span><span><i style="background:#e0b23c"></i>한쪽 ○, 한쪽 X</span><span>점 색 = 그룹</span><span><b>굵은 이름</b> = 두 무리를 서로 ○로 이어 주는 학생</span><span>점에 마우스를 올리면 그 학생의 선만 진하게</span><span>무리 밖 점 = 서로 ○ 친구가 없는 학생</span></div></div>';
   h+='<div class="card"><h2>그룹 '+big+'개 · 짝 '+(G.groups.length-big)+'개</h2><div class="ggrid">'+
     G.groups.map(function(g,k){
       var xs=G.between.filter(function(b){return b.i===k||b.j===k;});
-      return '<div class="gcard"><h3>'+gname(k)+' <span class="sub">'+g.length+'명</span></h3>'+chips(g,'o')+
+      return '<div class="gcard" data-g="'+k+'" style="cursor:pointer" title="누르면 관계 그림에서 이 그룹만 보여요"><h3>'+gname(k)+' <span class="sub">'+g.length+'명</span></h3>'+chips(g,'o')+
         (xs.length?'<div class="sub" style="margin-top:6px">'+xs.map(function(b){ var o=b.i===k?b.j:b.i; return (G.groups[o].length>=3?'그룹 ':'짝 ')+(o+1)+'과 '+[b.r?'서로 X '+b.r:'',b.y?'엇갈림 '+b.y:'',b.ox?'한쪽 X '+b.ox:''].filter(Boolean).join(', '); }).join('<br>')+'</div>':'')+'</div>';
     }).join('')+'</div></div>';
   h+='<div class="two"><div class="card"><h2>서로 ○ 친구가 없는 학생 ('+G.alone.length+')</h2>'+(G.alone.length?chips(G.alone,'x')+'<div class="sub" style="margin-top:6px">한번 더 살펴보면 좋은 학생이에요.</div>':'<span class="sub">없음</span>')+
@@ -876,14 +878,35 @@ function vGroups(v){
   h+='<div class="card"><details><summary style="cursor:pointer;font-weight:700">겹치는 무리 모두 보기 ('+G.cliques.length+'개, 3명 이상)</summary><div style="margin-top:8px">'+
     (G.cliques.length?G.cliques.map(function(c){ return '<div style="margin:5px 0">'+chips(c,'o')+'</div>'; }).join(''):'<span class="sub">없음</span>')+'</div></details></div>';
   v.innerHTML=h;
+  socApply(document.querySelector('svg.soc'));
   document.getElementById('sx').onchange=function(){ T.socX=this.checked; draw(); };
   document.getElementById('sy').onchange=function(){ T.socY=this.checked; draw(); };
 }
 
-document.addEventListener('mouseover',function(e){ var c=e.target.closest&&e.target.closest('.soc [data-n]'); if(!c) return; var id=c.getAttribute('data-n'), svg=c.closest('svg');
-  svg.querySelectorAll('line').forEach(function(l){ var on=l.getAttribute('data-a')===id||l.getAttribute('data-b')===id; l.setAttribute('stroke-opacity',on?1:0.06); }); });
-document.addEventListener('mouseout',function(e){ var c=e.target.closest&&e.target.closest('.soc [data-n]'); if(!c) return;
-  c.closest('svg').querySelectorAll('line').forEach(function(l){ l.setAttribute('stroke-opacity',l.getAttribute('data-o')); }); });
+/* 관계 그림: 그룹을 누르면 그 그룹만, 점에 마우스를 올리면 그 학생 선만 */
+function socApply(svg,hover){
+  if(!svg) return; var g=T.socSel==null?null:String(T.socSel);
+  svg.querySelectorAll('line').forEach(function(l){ var o=+l.getAttribute('data-o'), ca=l.getAttribute('data-ca'), cb=l.getAttribute('data-cb');
+    if(hover) o=(l.getAttribute('data-a')===hover||l.getAttribute('data-b')===hover)?1:0.05;
+    else if(g!=null) o=(ca===g&&cb===g)?0.95:(ca===g||cb===g)?0.55:0.03;
+    l.setAttribute('stroke-opacity',o); });
+  var near={}; if(g!=null&&!hover) svg.querySelectorAll('line').forEach(function(l){ if(l.getAttribute('data-ca')===g||l.getAttribute('data-cb')===g){ near[l.getAttribute('data-a')]=1; near[l.getAttribute('data-b')]=1; } });
+  svg.querySelectorAll('[data-c]').forEach(function(e){ var id=e.querySelector('[data-n]').getAttribute('data-n'); e.setAttribute('opacity',(g==null||e.getAttribute('data-c')===g||hover===id)?1:near[id]?0.7:0.15); });
+  svg.querySelectorAll('[data-gb]').forEach(function(e){ e.setAttribute('opacity',(g==null||e.getAttribute('data-gb')===g)?1:0.25); });
+  document.querySelectorAll('.gcard[data-g]').forEach(function(c){ c.classList.toggle('gsel',g!=null&&c.getAttribute('data-g')===g); });
+  var hint=document.getElementById('socHint'); if(hint) hint.style.visibility=g==null?'hidden':'visible';
+}
+document.addEventListener('mouseover',function(e){ var c=e.target.closest&&e.target.closest('.soc [data-n]'); if(c) socApply(c.closest('svg'),c.getAttribute('data-n')); });
+document.addEventListener('mouseout',function(e){ var c=e.target.closest&&e.target.closest('.soc [data-n]'); if(c) socApply(c.closest('svg')); });
+document.addEventListener('click',function(e){
+  if(!e.target.closest) return;
+  var b=e.target.closest('.soc [data-gb], .gcard[data-g], .soc [data-c]'), svg=document.querySelector('svg.soc');
+  if(!b){ if(e.target.closest('svg.soc')||e.target.closest('#socHint')){ T.socSel=null; socApply(svg); } return; }
+  var k=b.getAttribute('data-gb')||b.getAttribute('data-g')||b.getAttribute('data-c');
+  if(b.hasAttribute('data-c') && b.getAttribute('data-solo')) { T.socSel=null; socApply(svg); return; }
+  T.socSel=(String(T.socSel)===k)?null:k; socApply(svg);
+  if(T.socSel!=null && b.classList.contains('gcard') && svg) svg.scrollIntoView({behavior:'smooth',block:'center'});
+});
 function socSvg(A,G){
   // 그룹은 한 덩어리(작은 원)로, 그룹 사이는 이어 주는 학생 쪽을 마주 보게 배치
   var clusters=G.parts.map(function(g){ return g.slice(); });
@@ -947,14 +970,14 @@ function socSvg(A,G){
   x0-=16; y0-=16; x1+=16; y1+=16;
   var bg='';
   clusters.forEach(function(c,k){ if(c.length<2) return; var col=GCOL[(G.gOf[c[0]]||0)%GCOL.length];
-    bg+='<circle cx="'+P[k].x.toFixed(1)+'" cy="'+P[k].y.toFixed(1)+'" r="'+(R[k]+20).toFixed(1)+'" fill="'+col+'" fill-opacity="0.09" stroke="'+col+'" stroke-opacity="0.35" stroke-dasharray="4 4"/>'+
-      '<text x="'+P[k].x.toFixed(1)+'" y="'+(P[k].y+5).toFixed(1)+'" text-anchor="middle" font-size="15" fill="'+col+'" fill-opacity="0.45" font-weight="700">'+(c.length>=3?'그룹 ':'짝 ')+(G.gOf[c[0]]+1)+'</text>'; });
+    bg+='<g data-gb="'+k+'" style="cursor:pointer"><circle cx="'+P[k].x.toFixed(1)+'" cy="'+P[k].y.toFixed(1)+'" r="'+(R[k]+20).toFixed(1)+'" fill="'+col+'" fill-opacity="0.09" stroke="'+col+'" stroke-opacity="0.35" stroke-dasharray="4 4"/>'+
+      '<text x="'+P[k].x.toFixed(1)+'" y="'+(P[k].y+5).toFixed(1)+'" text-anchor="middle" font-size="15" fill="'+col+'" fill-opacity="0.45" font-weight="700">'+(c.length>=3?'그룹 ':'짝 ')+(G.gOf[c[0]]+1)+'</text></g>'; });
   var lines='';
   for(var i4=0;i4<n;i4++) for(var j4=i4+1;j4<n;j4++){
     var a4=ids[i4],b4=ids[j4],p4=A.pairs[a4+'|'+b4]; if(!p4) continue;
     if(p4==='r'&&T.socX!==true) continue; if(p4==='y'&&!T.socY) continue;
     var col4=p4==='g'?'#3d9a6a':p4==='r'?'#c2513f':'#e0b23c', same4=cOf[a4]===cOf[b4], br4=keyLine[a4+'|'+b4], w4=p4==='g'?(same4?2.8:(br4?1.8:1)):1.6, op4=p4==='g'?(same4?0.9:(br4?0.6:0.12)):0.6;
-    lines+='<line data-a="'+a4+'" data-b="'+b4+'" data-o="'+op4+'" x1="'+pos[a4].x.toFixed(1)+'" y1="'+pos[a4].y.toFixed(1)+'" x2="'+pos[b4].x.toFixed(1)+'" y2="'+pos[b4].y.toFixed(1)+'" stroke="'+col4+'" stroke-width="'+w4+'" stroke-opacity="'+op4+'"'+(p4==='y'?' stroke-dasharray="5 4"':'')+'/>';
+    lines+='<line data-a="'+a4+'" data-b="'+b4+'" data-ca="'+cOf[a4]+'" data-cb="'+cOf[b4]+'" data-o="'+op4+'" x1="'+pos[a4].x.toFixed(1)+'" y1="'+pos[a4].y.toFixed(1)+'" x2="'+pos[b4].x.toFixed(1)+'" y2="'+pos[b4].y.toFixed(1)+'" stroke="'+col4+'" stroke-width="'+w4+'" stroke-opacity="'+op4+'"'+(p4==='y'?' stroke-dasharray="5 4"':'')+'/>';
   }
   var nodes='';
   ids.forEach(function(id){ var Q=pos[id], k=G.gOf[id], resp=!!A.resp[id], c=clusters[Q.c];
@@ -962,8 +985,8 @@ function socSvg(A,G){
     var lx,ly,anc;
     if(c.length<2){ lx=Q.x; ly=Q.y+24; anc='middle'; }
     else { lx=Q.x+15*Math.cos(Q.t); ly=Q.y+15*Math.sin(Q.t)+4; anc=Math.cos(Q.t)>0.3?'start':Math.cos(Q.t)<-0.3?'end':'middle'; if(Math.sin(Q.t)>0.7) ly+=6; if(Math.sin(Q.t)<-0.7) ly-=4; }
-    nodes+='<circle data-n="'+id+'" style="cursor:pointer" cx="'+Q.x.toFixed(1)+'" cy="'+Q.y.toFixed(1)+'" r="'+(bridge[id]?10:8)+'" fill="'+fill+'" stroke="'+(resp?(bridge[id]?'#2E2A26':'#fff'):'#9aa0a8')+'" stroke-width="2"'+(resp?'':' stroke-dasharray="2 2"')+'/>'+
-      '<text x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" text-anchor="'+anc+'" font-size="13" paint-order="stroke" stroke="#fff" stroke-width="3" fill="'+(resp?'#24272c':'#9aa0a8')+'"'+(bridge[id]?' font-weight="700"':'')+'>'+esc(A.st[id].s.name)+'</text>';
+    nodes+='<g data-c="'+Q.c+'"'+(c.length<2?' data-solo="1"':'')+'><circle data-n="'+id+'" style="cursor:pointer" cx="'+Q.x.toFixed(1)+'" cy="'+Q.y.toFixed(1)+'" r="'+(bridge[id]?10:8)+'" fill="'+fill+'" stroke="'+(resp?(bridge[id]?'#2E2A26':'#fff'):'#9aa0a8')+'" stroke-width="2"'+(resp?'':' stroke-dasharray="2 2"')+'/>'+
+      '<text x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" text-anchor="'+anc+'" font-size="13" paint-order="stroke" stroke="#fff" stroke-width="3" fill="'+(resp?'#24272c':'#9aa0a8')+'"'+(bridge[id]?' font-weight="700"':'')+'>'+esc(A.st[id].s.name)+'</text></g>';
   });
   return '<svg class="soc" viewBox="'+x0.toFixed(0)+' '+y0.toFixed(0)+' '+(x1-x0).toFixed(0)+' '+(y1-y0).toFixed(0)+'" xmlns="http://www.w3.org/2000/svg">'+bg+lines+nodes+'</svg>';
 }
