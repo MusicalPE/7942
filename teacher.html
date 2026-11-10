@@ -223,6 +223,8 @@
   .sp{font-size:12px;border-radius:8px;padding:2px 8px;background:#efebe4}
   .sp.mo{background:#3d9a6a;color:#fff} .sp.oo{background:#DDF3E9;color:#1F4D3E} .sp.bad{background:#c2513f;color:#fff} .sp.na{background:#f1f0ec;color:#8A7F73}
   .sr{margin:8px 0 0;padding-left:16px;font-size:13px;color:#5E5750}
+  .sai{margin-top:8px;background:#F3EFFC;border-radius:10px;padding:7px 10px;font-size:13px;line-height:1.5}
+  .sai b{color:#5A47A8;margin-right:4px}
   /* ───── 인쇄 (마지막에 두어 화면 꾸밈보다 앞서게) ───── */
   @page{size:A4 landscape;margin:10mm}
   @media print{
@@ -245,7 +247,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.9.0', NEED_SHELL=1;
+var APP_VER='2.0.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -612,6 +614,78 @@ function seatReasons(M,o,g){
   }
   return out.filter(function(x,k,arr){ return arr.indexOf(x)===k; });
 }
+/* ───────── 짝·모둠 추천 — AI 의견 (이름은 번호로 바꿔 보냄) ───────── */
+function seatSig(o){ return JSON.stringify([o.mode,o.size,o.res.groups]); }
+function seatAIKey(rid){ return aiCacheKey(rid,'seat'); }
+function seatAIGet(rid,o){ try{ var c=JSON.parse(lsGet(seatAIKey(rid))||'null'); return c&&c.sig===seatSig(o)?c:null; }catch(e){ return null; } }
+function seatAIPrompt(rid,o){
+  var p=aiPayload(rid), an=p.an, T_=an.tok, A=analyze(rid), M=seatModel(A,o), ix={};
+  M.studs.forEach(function(s,i){ ix[s.id]=i; });
+  var unit=o.size===2?'짝':'모둠';
+  var groups=o.res.groups.map(function(g,k){
+    var rels=[]; for(var a=0;a<g.length;a++) for(var b=a+1;b<g.length;b++){ var i=ix[g[a]], j=ix[g[b]]; if(i==null||j==null) continue;
+      var s1=M.studs[i], s2=M.studs[j], v1=M.rel(s1,s2), v2=M.rel(s2,s1), nm={o:'○',t:'△',x:'X','?':'응답없음','':'표시없음'};
+      rels.push(T_[s1.id]+'→'+T_[s2.id]+' '+nm[v1]+', '+T_[s2.id]+'→'+T_[s1.id]+' '+nm[v2]+(M.hard[i][j]?' (함께 두면 안 되는 사이: '+M.hard[i][j]+')':'')); }
+    return {번호:k+1,학생:g.map(function(id){ return T_[id]; }),사이:rels}; });
+  var studs=p.data.학생.map(function(x){ var y={}; Object.keys(x).forEach(function(k){ if(k!=='서술형'&&k!=='선생님께') y[k]=x[k]; }); return y; });
+  var data={회차:p.data.회차,관계_표시:p.data.관계_표시,묶는_단위:unit+(o.size>2?' ('+o.size+'명 안팎)':''),
+    방향:({mix:'새 친구와 섞기(평소 서로 ○인 단짝은 되도록 떨어뜨림)',close:'친한 친구와 함께(서로 ○인 친구끼리)',even:'고르게(갈등만 피함)'})[o.mode],
+    남녀:o.gender?(o.size===2?'남녀 짝 우선':'남녀 고르게 섞기'):'성별 상관없음',
+    빠진_학생:A.studs.filter(function(s){ return o.out[s.id]; }).map(function(s){ return T_[s.id]; }),
+    추천한_자리:groups,친구그룹:p.data.친구그룹,학생:studs};
+  var prompt=AI_RULES+'\n\n선생님이 아래 조건으로 '+unit+'을 정했어. 이 자리 배치를 살펴보고 담임 선생님께 의견을 줘. '+
+    '"'+unit+' 1"처럼 번호로 부르고, 학생은 "학생번호"로만 불러. 바꿔 보자고 할 때는 X를 준 사이나 함께 두면 안 되는 사이가 같은 '+unit+'이 되지 않게 해. 정말 필요한 곳만 말해 줘.\n'+
+    '아래 JSON 형식으로만 답해.\n'+
+    '{"한줄평":"이 자리 배치 전체에 대한 한 문장","짝별의견":[{"번호":1,"의견":"이 '+unit+'이 좋은 점이나 기대되는 점 1~2문장","살펴볼점":"있을 때만, 없으면 빈 문자열"}],'+
+    '"바꿔볼만한곳":[{"내용":"예: '+unit+' 3의 학생4와 '+unit+' 7의 학생9 자리 바꾸기","까닭":""}],"처음일주일살펴볼점":[""],"학생들에게할말":"자리를 발표할 때 반 전체에 해 줄 짧은 말"}\n'+
+    '짝별의견은 모든 '+unit+'에 대해 써. 바꿔볼만한곳은 많아야 3개, 없으면 빈 배열.\n\n자료:\n'+JSON.stringify(data);
+  return {prompt:prompt,an:an};
+}
+function seatAIRun(force){
+  var o=seatOpt(), rid=T.rid; if(!o.res) return;
+  var ck=seatAIKey(rid), sig=seatSig(o), job=T.aiJobs[ck];
+  if(job&&job.running) return;
+  if(!force&&seatAIGet(rid,o)) return;
+  var P=seatAIPrompt(rid,o);
+  job=T.aiJobs[ck]={running:true,start:Date.now(),model:'',label:'자리 배치 의견',sig:sig};
+  seatAIPaint();
+  askAI(P.prompt,function(name){ job.model=name; }).then(function(res){
+    res=deepShow(res,P.an.show);
+    lsSet(ck,JSON.stringify({sig:sig,res:res,sec:Math.round((Date.now()-job.start)/1000),model:job.model,at:new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}));
+    job.running=false; delete T.aiJobs[ck];
+    if(T.tab==='seats'&&document.getElementById('seatAI')) draw(); else toast('자리 배치 AI 의견이 나왔어요. [짝·모둠 추천]에서 볼 수 있어요');
+  }).catch(function(e){
+    job.running=false; delete T.aiJobs[ck]; T.seatAIErr=aiErrText(e);
+    if(T.tab==='seats'&&document.getElementById('seatAI')) draw(); else toast('자리 배치 AI 의견 중 문제가 생겼어요');
+  });
+}
+function seatAIPaint(){
+  var el=document.getElementById('seatAI'), o=seatOpt(); if(!el||!o.res) return;
+  var ck=seatAIKey(T.rid), job=T.aiJobs[ck], c=seatAIGet(T.rid,o), unit=o.size===2?'짝':'모둠';
+  if(job&&job.running&&job.sig===seatSig(o)){
+    el.innerHTML='<h2>AI 의견</h2><div class="sub" id="seatAIStep"></div>';
+    var tick=function(){ var s=document.getElementById('seatAIStep'); if(!s||!job.running){ clearInterval(iv); return; }
+      s.textContent=(job.model?'AI('+job.model.replace('gemini-','')+')가':'AI가')+' 자리 배치를 읽고 있어요 · '+Math.round((Date.now()-job.start)/1000)+'초. 다른 탭을 봐도 계속돼요.'; };
+    var iv=setInterval(tick,500); tick(); return;
+  }
+  if(c){
+    var r=c.res||{}, how=(c.sec?c.sec+'초':'')+(c.model?' · '+c.model.replace('gemini-',''):'');
+    el.innerHTML='<h2>AI 의견 <span class="sub">'+esc(c.at||'')+(how?' ('+esc(how)+')':'')+'</span></h2>'+
+      '<div class="reason" style="font-size:16px"><b>한 줄 평</b>'+esc(r.한줄평||'')+'</div>'+
+      '<div class="two" style="margin-top:10px"><div><h3>바꿔 볼 만한 곳</h3>'+li(r.바꿔볼만한곳,function(x){ return '<b>'+esc(x.내용||'')+'</b>'+(x.까닭?'<div class="sub">'+esc(x.까닭)+'</div>':''); })+
+      '</div><div><h3>처음 일주일 살펴볼 점</h3>'+li(r.처음일주일살펴볼점,esc)+(r.학생들에게할말?'<h3>자리 발표할 때 해 줄 말</h3>'+para(r.학생들에게할말):'')+'</div></div>'+
+      '<p class="sub">'+unit+'마다 남긴 의견은 위 카드 안에 함께 보여요. AI의 해석이니 참고로만 써 주세요. <a href="#" id="seatAIRe" class="noprint">다시 듣기</a></p>';
+    document.getElementById('seatAIRe').onclick=function(e){ e.preventDefault(); seatAIRun(true); };
+    return;
+  }
+  var err=T.seatAIErr; T.seatAIErr=null;
+  el.innerHTML='<h2>AI 의견 <span class="sub">정한 자리를 AI가 한 번 더 살펴봐요</span></h2>'+(err?'<div class="err">'+esc(err)+'</div>':'')+
+    '<p class="sub">'+aiStatusLine()+' 학생 이름은 번호로 바꿔서 보내요.</p>'+
+    '<button class="btn main noprint" id="seatAIGo">AI에게 의견 듣기</button>'+((aiMode()!=='builtin'||aiKey())&&(err||aiMode()==='need'||aiMode()==='none')?keyBox():'');
+  document.getElementById('seatAIGo').onclick=function(){ seatAIRun(false); };
+  bindKeyBox(el,function(){ draw(); });
+}
+
 function vSeats(v){
   var o=seatOpt(), A=analyze(T.rid);
   var seps=seatLoad('sep'), hist=seatLoad('seathist'), nameOf={}; A.studs.forEach(function(s){ nameOf[s.id]=s.no+'. '+s.name; });
@@ -639,14 +713,15 @@ function vSeats(v){
       '<div class="seat-sum"><span class="'+(bad?'b':'g')+'">함께 두면 안 되는 사이 '+bad+'</span><span>서로 ○ '+mo+'</span>'+(o.history&&hist.length?'<span>지난 자리와 겹침 '+rep+'</span>':'')+'<span class="sub noprint">이름을 누른 뒤 다른 '+(o.size===2?'짝':'모둠')+'의 이름을 누르면 자리를 바꿔요</span></div>'+
       '<div class="seat-grid">'+groups.map(function(g,k){
         var pairs=[]; for(var a=0;a<g.length;a++) for(var b=a+1;b<g.length;b++){ var p=seatPairInfo(M,g[a],g[b]); if(g.length===2||p.cls!=='tt') pairs.push('<span class="sp '+p.cls+'">'+(g.length>2?esc(M.studs[g[a]].name+'·'+M.studs[g[b]].name)+' ':'')+esc(p.t)+'</span>'); }
-        var rs=seatReasons(M,o,g);
+        var rs=seatReasons(M,o,g), aic=seatAIGet(T.rid,o), aig=aic&&((aic.res||{}).짝별의견||[]).filter(function(x){ return +x.번호===k+1; })[0];
         return '<div class="seat'+(pairs.join('').indexOf('sp bad')>=0?' warn':'')+'"><div class="sh">'+(o.size===2?'짝 ':'모둠 ')+(k+1)+'</div><div class="sn">'+g.map(function(i){ var s=M.studs[i]; return '<button class="snm '+(s.gender==='남'?'m':s.gender==='여'?'f':'')+(o.pick===s.id?' pk':'')+'" data-sid="'+s.id+'">'+esc(s.no+'. '+s.name)+'</button>'; }).join('')+'</div>'+
-          '<div class="spl">'+pairs.join('')+'</div>'+(rs.length?'<ul class="sr">'+rs.map(function(r){ return '<li>'+esc(r)+'</li>'; }).join('')+'</ul>':'')+'</div>';
+          '<div class="spl">'+pairs.join('')+'</div>'+(rs.length?'<ul class="sr">'+rs.map(function(r){ return '<li>'+esc(r)+'</li>'; }).join('')+'</ul>':'')+(aig?'<div class="sai"><b>AI</b> '+esc(aig.의견||'')+(aig.살펴볼점?'<div class="sub">살펴볼 점: '+esc(aig.살펴볼점)+'</div>':'')+'</div>':'')+'</div>';
       }).join('')+'</div>'+
       '<div class="legend" style="margin-top:10px"><span><i style="background:#3d9a6a"></i>서로 ○</span><span><i style="background:#8FD3B6"></i>한쪽 ○</span><span><i style="background:#d9d3c9"></i>서로 △ · 응답 없음</span><span><i style="background:#c2513f"></i>함께 두면 안 되는 사이</span><span><i style="background:#6c8fd6"></i>남</span><span><i style="background:#e98aa6"></i>여</span></div>'+
       '<div class="sub" style="margin-top:6px">추천은 참고용이에요. 학생 사정은 선생님이 가장 잘 아시니, 바꿔 가며 정해 주세요.</div></div>';
+    h+='<div class="card" id="seatAI"></div>';
   }
-  v.innerHTML=h;
+  v.innerHTML=h; seatAIPaint();
   var $=function(id){ return document.getElementById(id); };
   $('szSel').onchange=function(){ o.size=+this.value; o.res=null; draw(); };
   v.querySelectorAll('input[name=sm]').forEach(function(r){ r.onchange=function(){ o.mode=r.value; }; });
