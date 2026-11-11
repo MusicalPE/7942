@@ -277,7 +277,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.4.0', NEED_SHELL=1;
+var APP_VER='2.4.1', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -748,7 +748,7 @@ function seatAIPaint(){
   var err=T.seatAIErr; T.seatAIErr=null;
   el.innerHTML='<h2>AI 의견 <span class="sub">정한 자리를 AI가 한 번 더 살펴봐요</span></h2>'+(err?'<div class="err">'+esc(err)+'</div>':'')+
     '<p class="sub">'+aiStatusLine()+' 학생 이름은 번호로 바꿔서 보내요.</p>'+
-    '<button class="btn main noprint" id="seatAIGo">AI에게 의견 듣기</button>'+((aiMode()!=='builtin'||aiKey())&&(err||aiMode()==='need'||aiMode()==='none')?keyBox():'');
+    '<button class="btn main noprint" id="seatAIGo">AI에게 의견 듣기</button>'+((err||aiMode()==='need'||aiMode()==='none')?keyBox():'');
   document.getElementById('seatAIGo').onclick=function(){ seatAIRun(false); };
   bindKeyBox(el,function(){ draw(); });
 }
@@ -961,7 +961,7 @@ function strAIPaint(sr,sid){
   var err=T.strAIErr; T.strAIErr=null;
   el.innerHTML='<h3 style="margin:0 0 4px">AI 해석 <span class="sub">'+(sid?'강점 풀이 · 교실에서 살리기 · 학생에게 해 줄 말':'우리 반의 힘 · 모둠 꾸리기 · 살펴볼 학생')+'</span></h3>'+(err?'<div class="err">'+esc(err)+'</div>':'')+
     '<p class="sub">'+aiStatusLine()+' 학생 이름은 번호로 바꿔서 보내요.</p><button class="btn main sm noprint strAIGo">AI에게 해석 듣기</button>'+
-    ((aiMode()!=='builtin'||aiKey())&&(err||aiMode()==='need'||aiMode()==='none')?keyBox():'');
+    ((err||aiMode()==='need'||aiMode()==='none')?keyBox():'');
   el.querySelector('.strAIGo').onclick=function(){ strAIRun(sr,sid,false); };
   bindKeyBox(el,function(){ strAIPaint(sr,sid); });
 }
@@ -1293,7 +1293,7 @@ function callOne(name,prompt){
   }
   return fbModel(name,cfg).then(function(m){ return m.generateContent(prompt); }).then(function(r){ return r.response.text(); });
 }
-var SKIP_RE=/quota|\b429\b|exhausted|rate.?limit|high demand|overloaded|unavailable|\b50[034]\b|not found|\b404\b|not supported|deadline/i;
+var SKIP_RE=/quota|\b429\b|exhausted|rate.?limit|high demand|overloaded|unavailable|\b50[0-4]\b|not found|\b404\b|not supported|deadline|failed to fetch|networkerror|load failed|network/i;
 function askAI(prompt,onStep){
   var mode=aiMode();
   if(mode==='none') return Promise.reject(new Error('NO_AI'));
@@ -1323,7 +1323,11 @@ function aiErrText(e){
   if(m==='NEED_KEY') return '무료 체험 '+AI_TRIAL+'번을 다 썼어요. 아래에서 내 Gemini 키를 넣어 주세요.';
   if(m==='BAD_KEY') return '넣어 둔 Gemini 키가 맞지 않아요. 아래에서 다시 넣어 주세요.';
   if(/quota|429|exhausted/i.test(m)) return 'AI 사용량이 잠깐 찼어요. 1~2분 뒤(하루 한도면 내일) 다시 해 주세요.';
-  return 'AI 분석 중 문제가 생겼어요. ('+m.slice(0,120)+')';
+  // 긴 주소는 빼고, 상태 번호와 까닭만 보여 줌
+  var clean=m.replace(/https?:\/\/\S+?(:\s|\s|$)/g,' ').replace(/AI:\s*Error fetching from\s*/i,'').replace(/\(AI\/[\w-]+\)/,'').replace(/\s+/g,' ').trim();
+  if(/app.?check|attestation|recaptcha/i.test(m)) return 'AI 연결 확인(App Check)이 안 됐어요. 페이지를 새로고침한 뒤 다시 해 보시고, 계속 안 되면 아래에 내 Gemini 키를 넣어 주세요. ('+clean.slice(0,160)+')';
+  if(/failed to fetch|networkerror|load failed/i.test(m)) return '인터넷 연결이 잠깐 끊겼어요. 다시 해 주세요.';
+  return 'AI 분석 중 문제가 생겼어요. 다시 해 보시고, 계속 안 되면 아래에 내 Gemini 키를 넣어 주세요. ('+clean.slice(0,200)+')';
 }
 
 /* 이름 → 번호 바꾸기 (서술형 답 속 이름까지) */
