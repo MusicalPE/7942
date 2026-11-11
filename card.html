@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>나의 강점 카드 · 7942 친구사이</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="favicon-64.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="나의 강점 카드">
+<meta property="og:description" content="7942 친구사이 성격 강점 조사 결과">
+<meta property="og:image" content="https://musicalpe.github.io/7942/og.png">
+<meta name="theme-color" content="#FFF8EE">
+<script>
+/* 카카오톡 안 브라우저로 열면 휴대폰 기본 브라우저로 넘김 (한 번만) */
+(function(){
+  if (!/KAKAOTALK/i.test(navigator.userAgent)) return;
+  try{ if (sessionStorage.getItem("kakao-out")) return; sessionStorage.setItem("kakao-out", "1"); }catch(e){}
+  location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+<style>
+  body{margin:0;background:#FFF8EE;color:#3B3631;font-family:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:16px;line-height:1.55}
+  .wrap{max-width:460px;margin:0 auto;padding:20px 16px 40px}
+  .brand{display:flex;align-items:center;gap:6px;justify-content:center;margin:6px 0 16px}
+  .brand span{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Jua',sans-serif;font-size:18px}
+  .brand span:nth-child(1){background:#8FD3B6;color:#1F4D3E}.brand span:nth-child(2){background:#FFB4A2;color:#6B2E22}.brand span:nth-child(3){background:#FFD66B;color:#5C4510}.brand span:nth-child(4){background:#C7B8F5;color:#3B2D72}
+  .brand b{font-family:'Jua',sans-serif;font-weight:400;margin-left:6px;color:#5E5750;letter-spacing:2px}
+  .msg{background:#fff;border:2px solid #EFE5D6;border-radius:18px;padding:14px 16px;margin-top:14px}
+  .msg small{display:block;color:#8A7F73;font-size:12px;margin-bottom:4px}
+  .note{font-size:12.5px;color:#8A7F73;text-align:center;margin-top:16px;line-height:1.6}
+  .err{background:#fff;border-radius:18px;padding:24px;text-align:center;color:#5E5750}
+  @media print{ body{background:#fff} .note{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span>7</span><span>9</span><span>4</span><span>2</span><b>친구사이</b></div>
+  <div id="app"></div>
+  <div class="note">학생이 스스로 답한 결과로 그린 카드예요. 성격을 정해 버리는 검사가 아니라, 내가 가진 힘을 알아보는 활동이에요.</div>
+</div>
+<script src="strength.js"></script>
+<script>
+window.addEventListener('hashchange',function(){ location.reload(); });
+(function(){
+  var app=document.getElementById('app');
+  function esc(x){ return String(x==null?'':x).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function dec(h){ h=h.replace(/-/g,'+').replace(/_/g,'/'); while(h.length%4) h+='='; return JSON.parse(decodeURIComponent(escape(atob(h)))); }
+  try{
+    var d=dec(location.hash.slice(1));
+    var s=String(d.s||'').split('').map(Number), roles=(d.ro||[]).map(function(i){ return STR.roles[i]; }).filter(Boolean);
+    if(s.length!==STR.items.length) throw new Error('bad');
+    app.innerHTML=STR.card(d.n||'나',{s:s,roles:roles,me:d.me||''},{round:d.r||'',radar:true})+
+      (d.m?'<div class="msg"><small>선생님이 남긴 한마디</small>'+esc(d.m)+'</div>':'');
+    document.title=(d.n?d.n+'의 ':'')+'강점 카드 · 7942 친구사이';
+  }catch(e){
+    app.innerHTML='<div class="err">카드 주소가 잘렸거나 잘못되었어요.<br>선생님께 받은 주소나 QR을 다시 열어 주세요.</div>';
+  }
+})();
+</script>
+</body>
+</html>

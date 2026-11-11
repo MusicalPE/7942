@@ -254,6 +254,8 @@
   .str-ai{margin-top:14px;padding-top:12px;border-top:2px dashed #EFE5D6;text-align:left}
   .str-ai h4,#strAI_class h4{margin:10px 0 2px;font-size:14px;color:#2B735A}
   .str-say{background:#DDF3E9;border-radius:12px;padding:10px 12px;color:#1F4D3E;line-height:1.5}
+  .str-share{margin-top:14px;padding-top:12px;border-top:2px dashed #EFE5D6;text-align:left}
+  .str-share #shQRbox svg{width:180px;height:180px}
   /* ───── 인쇄 (마지막에 두어 화면 꾸밈보다 앞서게) ───── */
   @page{size:A4 landscape;margin:10mm}
   @media print{
@@ -277,7 +279,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.5.0', NEED_SHELL=1;
+var APP_VER='2.6.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -826,6 +828,36 @@ function strLatest(){ var l=strRounds(); if(!l.length) return null; var r=l[l.le
 function strEnsure(){ var l=strRounds(); if(!l.length) return Promise.resolve(); var r=l[l.length-1]; return T.data[r.id]?Promise.resolve():loadRound(r.id); }
 function strNeedLoad(v){ var l=strRounds(); if(!l.length||T.data[l[l.length-1].id]) return false; if(v) v.innerHTML='<div class="card">불러오는 중...</div>'; strEnsure().then(draw).catch(fail); return true; }
 function strRoundFor(){ var r=round(); if(isStrR(r)) return r; var l=strRounds(); return l.length?l[l.length-1]:null; }
+/* ───────── 강점 카드를 학생·학부모에게 (결과를 주소 안에 담아 보냄, 시트에는 접속하지 않음) ───────── */
+function strCardURL(st,j,roundName,msg){
+  var ro=(j.roles||[]).map(function(r){ return STR.roles.indexOf(r); }).filter(function(i){ return i>=0; });
+  var d={v:1,n:st.name,r:roundName,s:(j.s||[]).join(''),ro:ro,me:String(j.me||'').slice(0,120)}; if(msg) d.m=String(msg).slice(0,200);
+  var b=btoa(unescape(encodeURIComponent(JSON.stringify(d)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  return location.origin+location.pathname.replace(/[^\/]*$/,'')+'card.html#'+b;
+}
+function strShareBox(sr,st,j){
+  var c=strAIGet(sr,st.id), say=c&&c.res&&c.res.학생에게해줄말||'';
+  return '<div class="str-share noprint"><h3 style="margin:0 0 4px">학생·학부모에게 보내기</h3>'+
+    '<p class="sub">이 학생의 강점 카드만 담긴 주소예요. 다른 학생 자료나 시트에는 들어갈 수 없어요.</p>'+
+    '<label class="sub" style="display:block;margin-top:6px">선생님 한마디 (넣지 않으려면 비워 두세요)</label><textarea id="shMsg" style="width:100%;min-height:64px;box-sizing:border-box">'+esc(say)+'</textarea>'+
+    '<div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px"><button class="btn sm" id="shCopy">주소 복사</button><button class="btn sm" id="shQR">QR 보기</button>'+(navigator.share?'<button class="btn sm main" id="shSend">카톡 등으로 보내기</button>':'')+'</div>'+
+    '<div id="shQRbox" style="text-align:center;margin-top:8px"></div></div>';
+}
+function strShareBind(sr,st,j){
+  function url(){ var m=document.getElementById('shMsg'); return strCardURL(st,j,sr.name,m?m.value.trim():''); }
+  var c=document.getElementById('shCopy'), q=document.getElementById('shQR'), sh=document.getElementById('shSend');
+  if(c) c.onclick=function(){ var u=url(); (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(function(){ toast('주소를 복사했어요'); }).catch(function(){ prompt('주소를 복사해 주세요',u); }); };
+  if(q) q.onclick=function(){ var b=document.getElementById('shQRbox'); drawQR(b,url(),4); };
+  if(sh) sh.onclick=function(){ navigator.share({title:st.name+'의 강점 카드',text:'7942 친구사이 성격 강점 조사 결과예요.',url:url()}).catch(function(){}); };
+}
+function strPrintQRs(sr,studs,M){
+  var list=studs.filter(function(s){ return M[s.id]; }); if(!list.length){ toast('응답한 학생이 없어요'); return; }
+  var w=window.open('','_blank'); if(!w){ toast('팝업이 막혔어요. 팝업을 허용해 주세요'); return; }
+  w.document.write('<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>강점 카드 QR</title><style>body{font-family:"Gowun Dodum","Malgun Gothic",sans-serif;margin:10mm}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm}.c{border:1.5px dashed #bbb;border-radius:10px;padding:5mm;text-align:center;break-inside:avoid}.c b{font-size:15px}.c svg{width:36mm;height:36mm}.c p{font-size:11px;color:#666;margin:4px 0 0}@page{size:A4;margin:8mm}</style></head><body><div class="g">'+
+    list.map(function(s,i){ return '<div class="c"><b>'+esc(s.no+'. '+s.name)+'</b><div id="q'+i+'"></div><p>휴대폰 카메라로 찍으면<br>나의 강점 카드를 볼 수 있어요</p></div>'; }).join('')+'</div></body></html>');
+  w.document.close();
+  loadQRLib().then(function(){ list.forEach(function(s,i){ var q=qrcode(0,'L'); q.addData(strCardURL(s,M[s.id],sr.name,'')); q.make(); w.document.getElementById('q'+i).innerHTML=q.createSvgTag({cellSize:3,margin:1}); }); setTimeout(function(){ w.print(); },300); });
+}
 function vStrength(v){
   var sr=strRoundFor();
   if(!sr){
@@ -869,16 +901,17 @@ function vStrength(v){
       return '<tr><td>'+s.no+'. '+esc(s.name)+'</td>'+STR.traits.map(function(t){ var x=j.sc[t.k];
         return '<td><div class="str-cell"><div class="stb-bar" style="background:'+t.soft+'"><i style="width:'+STR.pct(x)+'%;background:'+t.color+'"></i></div><span>'+x.toFixed(1)+'</span></div></td>'; }).join('')+
         '<td>'+esc((j.roles||[]).join(', '))+'</td><td style="max-width:240px">'+esc(j.me||'')+'</td><td class="noprint"><button class="btn sm" data-card="'+s.id+'">카드</button></td></tr>'; }).join('')+
-    '</table></div><div class="row noprint" style="margin-top:10px"><button class="btn str-pc" id="strPrT">이 표 인쇄</button><button class="btn" id="strPrC">강점 카드 모두 인쇄</button></div></div>';
+    '</table></div><div class="row noprint" style="margin-top:10px"><button class="btn str-pc" id="strPrT">이 표 인쇄</button><button class="btn" id="strPrC">강점 카드 모두 인쇄</button><button class="btn" id="strQR">결과 QR 모두 인쇄</button></div></div>';
   h+='<div class="card strcards"><details id="strCardsD"><summary style="cursor:pointer;font-weight:700">학생 강점 카드 모아 보기 ('+got.length+')</summary><div class="strgrid">'+
     got.map(function(s){ return STR.card(s.name,M[s.id],{round:sr.name}); }).join('')+'</div></details></div>';
   v.innerHTML=h;
   if(document.getElementById('strAI_class')) strAIPaint(sr,null);
   v.querySelectorAll('.str-tbl th[data-k]').forEach(function(th){ th.onclick=function(){ T.strSort=th.dataset.k; draw(); }; });
   v.querySelectorAll('[data-card]').forEach(function(b){ b.onclick=function(){ var s=studs.filter(function(x){return x.id===b.dataset.card;})[0], j=M[s.id];
-    modal(STR.card(s.name,j,{round:sr.name,radar:true,avg:avg})+'<div class="str-ai" id="strAI_'+s.id+'"></div>',[['닫기']]); strAIPaint(sr,s.id); }; });
+    modal(STR.card(s.name,j,{round:sr.name,radar:true,avg:avg})+strShareBox(sr,s,j)+'<div class="str-ai" id="strAI_'+s.id+'"></div>',[['닫기']]); strShareBind(sr,s,j); strAIPaint(sr,s.id); }; });
   var sm=document.getElementById('strSortM'); if(sm) sm.onchange=function(){ T.strSort=sm.value; draw(); };
   document.getElementById('strPrT').onclick=function(){ window.print(); };
+  document.getElementById('strQR').onclick=function(){ strPrintQRs(sr,studs,M); };
   document.getElementById('strPrC').onclick=function(){ document.getElementById('strCardsD').open=true; document.body.classList.add('print-cards'); setTimeout(function(){ window.print(); },50); };
 }
 window.addEventListener('afterprint',function(){ document.body.classList.remove('print-cards'); });
