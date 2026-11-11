@@ -129,6 +129,18 @@
   .side .kpi div{transition:transform .25s cubic-bezier(.34,1.7,.5,1)}
   .side .kpi div:hover{transform:translateY(-4px) scale(1.04)}
   @media (prefers-reduced-motion: reduce){ .brand span,.mini-brand i,.friend .dot,.seg button,.qno,.btn,.tabs button,.side .kpi div{transition:none} }
+  /* 성격 강점 */
+  .lk{background:#fff;border:2px solid #EFE5D6;border-radius:18px;padding:14px;margin-bottom:10px}
+  .lk.miss{border-color:#e7a091;background:#fff6f4}
+  .lk .q{margin-bottom:10px}
+  .lk-seg{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .lk-seg button{word-break:keep-all;border:2px solid #EFE5D6;background:#FFFCF7;border-radius:14px;padding:8px 2px;font-family:inherit;font-size:12px;line-height:1.25;color:#5E5750;cursor:pointer;min-height:58px}
+  .lk-seg button b{display:block;font-family:'Jua',sans-serif;font-weight:400;font-size:20px;color:#3B3631}
+  .lk-seg button.on{border-color:#3E9A7A;background:#DDF3E9;color:#1F4D3E}
+  .lk-seg button.on b{color:#1F4D3E}
+  .roles{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .roles button{border:2px solid #EFE5D6;background:#fff;border-radius:999px;padding:9px 14px;font-family:inherit;font-size:15px;cursor:pointer}
+  .roles button.on{border-color:#3E9A7A;background:#DDF3E9;color:#1F4D3E;font-weight:700}
 </style>
 </head>
 <body>
@@ -141,10 +153,11 @@
 <div class="modal hide" id="modal"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
+<script src="strength.js"></script>
 <script>
 var KEY_NAME='7942_key';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='1.7.1', NEED_SHELL=1;
+var APP_VER='2.3.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -170,11 +183,11 @@ var DEMO = {
   studentLogin:function(code){
     if(!/^\d{4}$/.test(code)) throw new Error('코드가 맞지 않아요. 선생님께 받은 4자리 숫자를 다시 확인해 주세요.');
     var names=[['김하늘','여'],['박도윤','남'],['이서아','여'],['최민준','남'],['정하린','여'],['강지호','남'],['윤소율','여'],['장시우','남'],['한예린','여'],['오준서','남'],['신다은','여'],['임건우','남']];
-    return {token:'demo',rid:'R1',name:'홍길동',roundName:'1회차(5월)',submitted:false,
+    return {token:'demo',rid:Q.has('str')?'R3':'R1',name:'홍길동',roundName:Q.has('str')?'성격 강점(11월)':'1회차(5월)',submitted:false,
       friends:names.map(function(n,i){return {id:'S'+i,name:n[0],gender:n[1]};}),
       settings:{title:'우리반 친구들은?!',intro:'우리 반 친구들과 함께 지내면서 느낀 점을 솔직하게 써 보세요. 여러분이 쓴 내용은 선생님만 볼 수 있어요.',
         questions:['우리 반은 "나"에게 어떤 반인가요?','나는 우리 반 친구들에게 어떤 아이일까요?','지금까지 지내면서 좋았던 점은?','지금까지 지내면서 어려웠던 점은?','우리 반에게 바라는 점은 무엇인가요?'],
-        requireAllRelations:true,relScale:Q.has('five')?5:3,praiseMode:'gender',praiseMale:1,praiseFemale:1,praiseAny:2,praiseRequired:true,
+        kind:Q.has('str')?'strength':'',requireAllRelations:true,relScale:Q.has('five')?5:3,praiseMode:'gender',praiseMale:1,praiseFemale:1,praiseAny:2,praiseRequired:true,
         praiseQuestion:'이 친구가 친구 관계에서 칭찬받을 점은 무엇인가요? 이 친구와 친해지고 싶은 이유는?',
         conflictMax:2,conflictQuestion:'이 친구가 친구 관계에서 고쳐야 할 점은 무엇인가요? 이 친구와 사이가 좋지 않은 이유는?',askTeacherMessage:true}};
   },
@@ -265,6 +278,12 @@ function confirmMe(){
 function startSurvey(){
   var st=S.info.settings;
   var d=loadDraft();
+  if(st.kind==='strength'){
+    S.data = (d&&d.sv) ? d : { sv:[], roles:[], me:'' };
+    S.steps=['lk1','lk2','me','sreview']; S.step=0;
+    var sv0=ssGet(); if(sv0&&sv0.code===S.code&&sv0.rid===S.info.rid&&sv0.step<S.steps.length) S.step=sv0.step;
+    render(); return;
+  }
   S.data = d || { answers: st.questions.map(function(){return '';}), rel:{}, praise:[], conflict:[], message:'' };
   S.steps=[];
   if(st.questions.length) S.steps.push('questions');
@@ -296,9 +315,27 @@ function praiseSlots(){
 
 function render(){
   var st=S.info.settings, kind=S.steps[S.step];
-  var head='<div class="sub">'+esc(S.info.roundName)+' · '+esc(S.info.name)+'</div><h1>'+esc(st.title)+'</h1>'+
+  var head='<div class="sub">'+esc(S.info.roundName)+' · '+esc(S.info.name)+'</div><h1>'+esc(st.kind==='strength'?(st.strTitle||'나의 강점 찾기'):st.title)+'</h1>'+
     '<div class="steps">'+S.steps.map(function(_,i){return '<i class="'+(i<=S.step?'on':'')+'"></i>';}).join('')+'</div>';
   var body='';
+  if(kind==='lk1'||kind==='lk2'){
+    var from=kind==='lk1'?0:10;
+    body=(kind==='lk1'?'<div class="card"><div class="sub">'+esc(st.strIntro||'나는 어떤 사람일까요? 맞고 틀린 답은 없어요. 나와 가장 비슷한 것을 골라 주세요. 선생님만 봐요.')+'</div></div>':'')+
+      STR.items.slice(from,from+10).map(function(it,j){ var i=from+j, v=S.data.sv[i];
+        return '<div class="lk" data-i="'+i+'"><div class="q"><span class="qno">'+(i+1)+'</span>'+esc(it.q)+'</div><div class="lk-seg">'+
+          STR.scale.map(function(sc){ return '<button data-v="'+sc[0]+'" class="'+(v===sc[0]?'on':'')+'"><b>'+sc[0]+'</b>'+sc[1]+'</button>'; }).join('')+'</div></div>'; }).join('')+
+      '<div class="count" id="lkCount"></div>';
+  }
+  if(kind==='me'){
+    body='<div class="card"><h2>모둠에서 내가 맡고 싶은 역할</h2><div class="sub">한두 개 골라 주세요.</div><div class="roles">'+
+      STR.roles.map(function(r){ return '<button data-r="'+esc(r)+'" class="'+(S.data.roles.indexOf(r)>=0?'on':'')+'">'+esc(r)+'</button>'; }).join('')+'</div></div>'+
+      '<div class="card"><h2>내가 자랑하고 싶은 나의 좋은 점</h2><div class="sub">작은 것도 좋아요!</div><textarea id="meT" style="margin-top:10px;min-height:110px">'+esc(S.data.me)+'</textarea></div>';
+  }
+  if(kind==='sreview'){
+    var nAns=S.data.sv.filter(function(v){return v>=1;}).length;
+    body='<div class="card"><h2>다 했어요!</h2><div class="sub">제출하면 고칠 수 없어요. 고칠 곳이 있으면 [이전]을 눌러 주세요.'+(st.showCard===false?'':' 제출하면 나의 강점 카드를 볼 수 있어요.')+'</div><dl class="review">'+
+      '<dt>답한 문항</dt><dd>'+nAns+' / '+STR.items.length+'</dd><dt>맡고 싶은 역할</dt><dd>'+esc(S.data.roles.join(', ')||'없음')+'</dd><dt>나의 좋은 점</dt><dd>'+esc(S.data.me)+'</dd></dl></div>';
+  }
   if(kind==='questions'){
     body='<div class="card"><div class="sub">'+esc(st.intro)+'</div></div>'+
       st.questions.map(function(q,i){ return '<div class="card"><div class="q"><span class="qno">'+(i+1)+'</span>'+esc(q)+'</div><textarea data-a="'+i+'" placeholder="여기에 적어 주세요">'+esc(S.data.answers[i]||'')+'</textarea></div>'; }).join('');
@@ -353,11 +390,18 @@ function render(){
   bindStep(kind);
   bar(true);
   document.getElementById('prevBtn').style.visibility=S.step===0?'hidden':'visible';
-  document.getElementById('nextBtn').textContent=kind==='review'?'제출하기':'다음';
+  document.getElementById('nextBtn').textContent=(kind==='review'||kind==='sreview')?'제출하기':'다음';
   window.scrollTo(0,0);
 }
 
 function bindStep(kind){
+  app.querySelectorAll('.lk').forEach(function(row){ row.querySelectorAll('button').forEach(function(b){ b.onclick=function(){
+    S.data.sv[+row.dataset.i]=+b.dataset.v; saveDraft(); row.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on',x===b); }); row.classList.remove('miss'); lkCount(kind); }; }); });
+  if(kind==='lk1'||kind==='lk2') lkCount(kind);
+  app.querySelectorAll('.roles button').forEach(function(b){ b.onclick=function(){ var r=b.dataset.r, i=S.data.roles.indexOf(r);
+    if(i>=0) S.data.roles.splice(i,1); else { if(S.data.roles.length>=2){ document.getElementById('err').textContent='역할은 두 개까지 고를 수 있어요.'; return; } S.data.roles.push(r); }
+    document.getElementById('err').textContent=''; b.classList.toggle('on',i<0); saveDraft(); }; });
+  var meT=document.getElementById('meT'); if(meT) meT.oninput=function(){ S.data.me=meT.value; saveDraft(); if(meT.value.replace(/\s/g,'').length>=2) meT.classList.remove('need'); };
   app.querySelectorAll('textarea[data-a]').forEach(function(t){ t.oninput=function(){ S.data.answers[+t.dataset.a]=t.value; saveDraft(); if(t.value.replace(/\s/g,'').length>=2) t.classList.remove('need'); }; });
   app.querySelectorAll('textarea[data-pr]').forEach(function(t){ t.addEventListener('input',function(){ if(t.value.replace(/\s/g,'').length>=2) t.classList.remove('need'); }); });
   if(kind==='relations'){
@@ -377,6 +421,10 @@ function bindStep(kind){
   var m=document.getElementById('msg'); if(m) m.oninput=function(){ S.data.message=m.value; saveDraft(); };
 }
 
+function lkCount(kind){
+  var from=kind==='lk1'?0:10, left=0; for(var i=from;i<from+10;i++) if(!(S.data.sv[i]>=1)) left++;
+  var el=document.getElementById('lkCount'); if(el) el.innerHTML=left?'아직 고르지 않은 문항 <b>'+left+'개</b>':'이 쪽은 다 골랐어요.';
+}
 function relCount(){
   var left=S.info.friends.filter(function(f){return !S.data.rel[f.id];}).length;
   var el=document.getElementById('relCount');
@@ -385,6 +433,15 @@ function relCount(){
 
 function checkStep(kind){
   var st=S.info.settings;
+  if(kind==='lk1'||kind==='lk2'){
+    var from=kind==='lk1'?0:10, miss=[];
+    for(var i=from;i<from+10;i++) if(!(S.data.sv[i]>=1)){ miss.push(i+1); var r=app.querySelector('.lk[data-i="'+i+'"]'); if(r) r.classList.add('miss'); }
+    if(miss.length){ var f=app.querySelector('.lk.miss'); if(f) f.scrollIntoView({behavior:'smooth',block:'center'}); return '모든 문항에 하나씩 골라 주세요. ('+miss.join(', ')+'번)'; }
+  }
+  if(kind==='me'){
+    if(!S.data.roles.length) return '맡고 싶은 역할을 하나 이상 골라 주세요.';
+    if(String(S.data.me||'').replace(/\s/g,'').length<2){ var mt=document.getElementById('meT'); if(mt){ mt.classList.add('need'); mt.focus(); } return '나의 좋은 점을 적어 주세요.'; }
+  }
   if(kind==='questions'){
     var miss=[];
     st.questions.forEach(function(q,i){ var t=String(S.data.answers[i]||'').replace(/\s/g,''); var el=app.querySelector('textarea[data-a="'+i+'"]'); var bad=t.length<2; if(el) el.classList.toggle('need',bad); if(bad) miss.push(i+1); });
@@ -418,7 +475,7 @@ document.getElementById('prevBtn').onclick=function(){ if(S.step>0){ S.step--; r
 document.getElementById('nextBtn').onclick=function(){
   var kind=S.steps[S.step], msg=checkStep(kind);
   if(msg){ document.getElementById('err').textContent=msg; return; }
-  if(kind==='review'){ askSubmit(); return; }
+  if(kind==='review'||kind==='sreview'){ askSubmit(); return; }
   S.step++; render();
 };
 
@@ -429,11 +486,17 @@ function askSubmit(){
   document.getElementById('mNo').onclick=function(){ md.classList.add('hide'); };
   document.getElementById('mYes').onclick=function(){
     var b=this; b.disabled=true; b.textContent='보내는 중...';
-    var payload={ answers:S.data.answers, rel:S.data.rel,
+    var isStr=S.info.settings.kind==='strength';
+    var payload=isStr?{ answers:STR.pack(S.data.sv,S.data.roles,S.data.me), rel:{}, praise:[], conflict:[], message:'' }:{ answers:S.data.answers, rel:S.data.rel,
       praise:(S.data.praise||[]).filter(function(p){return p&&p.id;}),
       conflict:(S.data.conflict||[]).filter(function(p){return p&&p.id;}), message:S.data.message };
+    var mine={s:S.data.sv.slice(),roles:S.data.roles?S.data.roles.slice():[],me:S.data.me};
     call('studentSubmit',S.info.token,payload).then(function(){
       clearDraft(); ssSet(null); md.classList.add('hide'); bar(false);
+      if(isStr){
+        app.innerHTML='<div class="card center" style="margin-top:24px"><div class="done">제출했어요. 고마워요!</div>'+(S.info.settings.showCard===false?'<div class="sub">선생님이 결과를 보고 이야기해 줄 거예요.</div></div>':'<div class="sub">나의 강점 카드예요. 화면을 찍어 두어도 좋아요.</div></div>'+STR.card(S.info.name,mine,{round:S.info.roundName}));
+        window.scrollTo(0,0); return;
+      }
       app.innerHTML='<div class="card center" style="margin-top:40px"><div class="done">제출했어요. 고마워요!</div><div class="sub">솔직하게 적어 준 마음은 선생님만 보고, 더 좋은 우리 반을 만드는 데 쓸게요.</div></div>';
     }).catch(function(e){
       md.classList.add('hide');

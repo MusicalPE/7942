@@ -227,6 +227,11 @@
   .sai b{color:#5A47A8;margin-right:4px}
   .gcard.gsel{outline:3px solid #FFB43B;outline-offset:2px}
   .soc line{pointer-events:none}
+  .str-sum{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+  .str-tn{font-weight:800;margin-bottom:4px}
+  .str-cell{display:flex;align-items:center;gap:6px;min-width:96px}.str-cell .stb-bar{flex:1;height:10px}.str-cell span{font-size:12px;color:#5E5750;width:24px;text-align:right}
+  .strgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:12px}
+  @media print{ body.print-cards #view > .card:not(.strcards){display:none!important} body.print-cards .strcards summary{display:none} body.print-cards .strcards{border:0;box-shadow:none;padding:0} .strgrid{grid-template-columns:1fr 1fr} }
   /* ───── 인쇄 (마지막에 두어 화면 꾸밈보다 앞서게) ───── */
   @page{size:A4 landscape;margin:10mm}
   @media print{
@@ -246,10 +251,11 @@
 <div class="modal hide" id="modal"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
+<script src="strength.js"></script>
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.2.0', NEED_SHELL=1;
+var APP_VER='2.3.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -311,6 +317,17 @@ var DEMO=(function(){
     return out;
   }
   var resp={R1:gen('R1',0),R2:gen('R2',1)};
+  // 성격 강점 조사(지어낸 답)
+  var strSet=JSON.parse(JSON.stringify(base)); strSet.kind='strength'; strSet.strTitle='나의 강점 찾기'; strSet.showCard=true;
+  rounds.push({id:'R3',name:'성격 강점(11월)',created:'2026-11-05',status:'마감',settings:strSet});
+  var MES=['그림을 잘 그려요','친구를 잘 웃겨요','달리기가 빨라요','책을 많이 읽어요','동생을 잘 돌봐요','정리를 잘해요','포기하지 않아요','노래를 잘 불러요'];
+  resp.R3=roster.map(function(a,ai){ if(ai===20) return null;
+    var b={E:2.6+rnd()*2,A:2.8+rnd()*1.9,C:2.5+rnd()*2.2,S:2.4+rnd()*2.2,O:2.7+rnd()*2};
+    if(ai===8){ b.E=1.9; b.A=4.6; } if(ai===3||ai===11){ b.S=2.0; b.A=2.6; } if(ai===5){ b.E=4.7; }
+    var sv=STR.items.map(function(it){ var v=Math.round(b[it.t]+(rnd()-0.5)*1.4); v=Math.max(1,Math.min(5,v)); return it.r?6-v:v; });
+    var r1=STR.roles[Math.floor(rnd()*STR.roles.length)], r2=STR.roles[Math.floor(rnd()*STR.roles.length)], roles=r1===r2?[r1]:[r1,r2];
+    return {rid:'R3',sid:a.id,no:a.no,name:a.name,time:'2026-11-05 10:0'+(ai%10),answers:STR.pack(sv,roles,MES[ai%MES.length]),rel:{},praise:[],conflict:[],message:''};
+  }).filter(Boolean);
   if(Q.has('five')){ rounds[1].settings=JSON.parse(JSON.stringify(base)); rounds[1].settings.relScale=5;
     resp.R2.forEach(function(r){ Object.keys(r.rel).forEach(function(k){ var v=r.rel[k]; r.rel[k]=v==='o'?(rnd()<.5?'5':'4'):v==='t'?'3':(rnd()<.5?'2':'1'); }); }); }
   return {
@@ -410,11 +427,13 @@ function analyze(rid){
 }
 
 /* ───────── 화면 ───────── */
-var TABS=[['status','응답 현황'],['matrix','관계표'],['groups','친구 그룹'],['seats','짝·모둠 추천'],['student','학생별 보기'],['answers','서술형 모아 보기'],['compare','회차 비교'],['ai','AI 분석'],['settings','설문 설정'],['roster','학생 명단·코드']];
+var TABS=[['status','응답 현황'],['matrix','관계표'],['groups','친구 그룹'],['seats','짝·모둠 추천'],['student','학생별 보기'],['answers','서술형 모아 보기'],['compare','회차 비교'],['strength','성격 강점'],['ai','AI 분석'],['settings','설문 설정'],['roster','학생 명단·코드']];
 
 function draw(){
-  var r=round();
-  var opts=T.rounds.map(function(x){ return '<option value="'+x.id+'"'+(x.id===T.rid?' selected':'')+'>'+esc(x.name)+(x.status==='진행중'?' (진행중)':'')+'</option>'; }).join('');
+  var r=round(), isStr=r&&(r.settings||{}).kind==='strength';
+  var STR_TABS=['status','strength','settings','roster'];
+  if(isStr&&STR_TABS.indexOf(T.tab)<0) T.tab='strength';
+  var opts=T.rounds.map(function(x){ return '<option value="'+x.id+'"'+(x.id===T.rid?' selected':'')+'>'+esc(x.name)+((x.settings||{}).kind==='strength'?' · 성격 강점':'')+(x.status==='진행중'?' (진행중)':'')+'</option>'; }).join('');
   root.innerHTML='<header><h1><span class="mini-brand" role="img" aria-label="7942"><i>7</i><i>9</i><i>4</i><i>2</i></span><small style="font-size:15px;color:#5E5750;letter-spacing:3px">친구사이</small></h1>'+
     (T.rounds.length?'<select id="rsel">'+opts+'</select>'+(r?'<span class="pill '+(r.status==='진행중'?'on':'off')+'">'+esc(r.status)+'</span>'+
      '<button class="btn sm" id="tgl">'+(r.status==='진행중'?'마감하기':'다시 열기')+'</button>':''):'<span class="sub">아직 회차가 없어요</span>')+
@@ -422,12 +441,12 @@ function draw(){
     (IS_GAS?'':'<span class="demo">미리보기(지어낸 이름)</span>')+
     '<button class="btn sm" id="lnk">학생용 주소</button><a class="btn sm" href="'+esc(T.sheetUrl)+'" target="_blank" style="text-decoration:none">시트 열기</a><button class="btn sm btn-install hide">앱으로 설치</button><button class="btn sm" id="lgo">로그아웃</button></header>'+
     '<main>'+(T.shellOld?'<div class="card warnbar" style="background:#fdecea;border-color:#f0b8ae">시트 껍데기가 예전 버전이에요. 설치 안내를 보고 Code.gs를 새로 붙여 넣은 뒤 [배포 관리]에서 새 버전으로 배포해 주세요.</div>':'')+(T.defaultPw?'<div class="card warnbar" style="background:#fff8e6;border-color:#f0d58a">처음 비밀번호(0000)를 쓰고 있어요. [설문 설정] 탭 아래에서 꼭 바꿔 주세요.</div>':'')+
-    '<div class="tabs">'+TABS.map(function(t){ return '<button data-t="'+t[0]+'" class="'+(T.tab===t[0]?'on':'')+'">'+t[1]+'</button>'; }).join('')+'</div><div id="view"></div></main>';
+    '<div class="tabs">'+TABS.filter(function(t){ return !isStr||STR_TABS.indexOf(t[0])>=0; }).map(function(t){ return '<button data-t="'+t[0]+'" class="'+(T.tab===t[0]?'on':'')+'">'+t[1]+'</button>'; }).join('')+'</div><div id="view"></div></main>';
   root.querySelectorAll('.tabs button').forEach(function(b){ b.onclick=function(){ if(T.tab==='roster'&&T.rosterDirty&&!confirm('명단에서 고친 내용을 아직 저장하지 않았어요. 그냥 넘어갈까요?')) return; T.tab=b.dataset.t; draw(); }; });
   var rs=document.getElementById('rsel'); if(rs) rs.onchange=function(){ T.rid=rs.value; T.sel=null; loadRound(T.rid).then(draw); };
   var tg=document.getElementById('tgl'); if(tg) tg.onclick=function(){
     call('updateRound',T.token,T.rid,{status:r.status==='진행중'?'마감':'진행중'}).then(function(x){ T.rounds=x; draw(); toast(r.status==='진행중'?'마감했어요. 학생이 더 이상 들어올 수 없어요.':'다시 열었어요. 다른 회차는 마감됐어요.'); }).catch(fail); };
-  document.getElementById('newR').onclick=newRound;
+  document.getElementById('newR').onclick=function(){ newRound(); };
   document.getElementById('lgo').onclick=function(){ tkSave(null); T.token=null; T.data={}; loginView(); };
   document.getElementById('lnk').onclick=function(){
     modal('<h2>학생용 주소</h2><div id="cc"></div><div class="sub" style="margin-top:12px"><b>QR · 긴 주소</b> 학생 기기에서 이 주소나 QR로 한 번 들어오면, 그 기기는 다음부터 7942 주소만 열어도 우리 반으로 들어와요.</div><div id="qr" class="center" style="margin:12px 0;min-height:40px"></div><input id="u" style="width:100%" readonly value="'+esc(T.url)+'">',
@@ -435,10 +454,10 @@ function draw(){
   };
   document.getElementById('lnk').addEventListener('click',function(){ drawQR(document.getElementById('qr'),T.url,5); fillClassCode(); });
   var v=document.getElementById('view');
-  if(!T.rounds.length && ['status','matrix','groups','seats','student','answers','compare','ai','settings'].indexOf(T.tab)>=0){
+  if(!T.rounds.length && ['status','matrix','groups','seats','student','answers','compare','ai','settings','strength'].indexOf(T.tab)>=0){
     v.innerHTML='<div class="card center"><h2>첫 회차를 만들어 주세요</h2><div class="sub">학생 명단을 넣고, 위의 [새 회차 만들기]를 누르면 설문이 열려요.</div></div>'; return;
   }
-  ({status:vStatus,matrix:vMatrix,groups:vGroups,seats:vSeats,student:vStudent,answers:vAnswers,compare:vCompare,ai:vAI,settings:vSettings,roster:vRoster})[T.tab](v);
+  ({status:vStatus,matrix:vMatrix,groups:vGroups,seats:vSeats,student:function(v){ if(strNeedLoad(v)) return; vStudent(v); var L=strLatest(); if(L&&T.sel&&L.m[T.sel]){ var s=T.roster.filter(function(x){return x.id===T.sel;})[0]; var d=document.createElement('div'); d.className='card'; d.innerHTML='<h2>성격 강점 <span class="sub">'+esc(L.r.name)+'</span></h2>'+STR.card(s.name,L.m[T.sel],{round:L.r.name}); v.appendChild(d); } },answers:vAnswers,compare:vCompare,strength:vStrength,ai:vAI,settings:vSettings,roster:vRoster})[T.tab](v);
 }
 
 var REG=(window.REGISTRY_URL||'').trim();
@@ -510,10 +529,20 @@ function modal(html,buttons){
   box.querySelectorAll('.row button').forEach(function(el){ el.onclick=function(){ var b=buttons[+el.dataset.i]; if(b[1]&&b[1]()===false) return; md.classList.add('hide'); }; });
 }
 
-function newRound(){
+function newRound(kind){
   var d=new Date(), m=(d.getMonth()+1);
-  modal('<h2>새 회차 만들기</h2><div class="sub">새 회차를 열면 지금 진행 중인 회차는 마감돼요. 설문 설정은 바로 앞 회차 것을 그대로 가져와요.</div><input id="rn" style="width:100%;margin-top:10px" value="'+(T.rounds.length+1)+'회차('+m+'월)">',
-    [['취소'],['만들기',function(){ var n=document.getElementById('rn').value.trim(); call('createRound',T.token,n).then(function(x){ T.rounds=x; T.rid=x[x.length-1].id; T.data[T.rid]=[]; T.tab='status'; draw(); toast('새 회차를 열었어요'); }).catch(fail); },'main']]);
+  var nf=T.rounds.filter(function(r){ return (r.settings||{}).kind!=='strength'; }).length, ns_=T.rounds.length-nf;
+  var defF=(nf+1)+'회차('+m+'월)', defS='성격 강점'+(ns_?' '+(ns_+1):'')+'('+m+'월)';
+  modal('<h2>새 회차 만들기</h2><div class="sub">새 회차를 열면 지금 진행 중인 회차는 마감돼요.</div>'+
+    '<div class="set-row" style="margin-top:10px"><label><input type="radio" name="rk" value="" '+(kind!=='strength'?'checked':'')+'> <b>교우관계 조사</b> <span class="sub">친구마다 ○△X, 서술형, 칭찬 친구</span></label></div>'+
+    '<div class="set-row"><label><input type="radio" name="rk" value="strength" '+(kind==='strength'?'checked':'')+'> <b>성격 강점 조사</b> <span class="sub">나에 대한 문항 20개, 맡고 싶은 역할, 나의 좋은 점</span></label></div>'+
+    '<input id="rn" style="width:100%;margin-top:10px" value="'+esc(kind==='strength'?defS:defF)+'">',
+    [['취소'],['만들기',function(){ var n=document.getElementById('rn').value.trim(), k=(document.querySelector('input[name=rk]:checked')||{}).value||'';
+      call('createRound',T.token,n).then(function(x){
+        var nr=x[x.length-1], st=Object.assign({},nr.settings||{}); st.kind=k; if(k==='strength'&&!st.strTitle) st.strTitle='나의 강점 찾기';
+        return call('updateRound',T.token,nr.id,{settings:st});
+      }).then(function(x){ T.rounds=x; T.rid=x[x.length-1].id; T.data[T.rid]=[]; T.tab='status'; draw(); toast(k==='strength'?'성격 강점 조사를 열었어요':'새 회차를 열었어요'); }).catch(fail); },'main']]);
+  document.querySelectorAll('input[name=rk]').forEach(function(r){ r.onchange=function(){ var e=document.getElementById('rn'); if(e.value===defF||e.value===defS) e.value=r.value==='strength'?defS:defF; }; });
 }
 
 /* ───────── 짝·모둠 추천 ─────────
@@ -555,7 +584,8 @@ function seatModel(A,o){
     if(hard[i][j]) u=SEAT_NEVER;
     U[i][j]=U[j][i]=u;
   }
-  return {studs:studs,n:n,U:U,hard:hard,rel:rel,lonely:lonely,seen:seen};
+  var SL=o.str!==false?strLatest():null, sv=SL?studs.map(function(s){ return SL.m[s.id]||null; }):null;
+  return {studs:studs,n:n,U:U,hard:hard,rel:rel,lonely:lonely,seen:seen,sv:sv};
 }
 function seatSizes(n,k){
   if(n<=0) return [];
@@ -567,6 +597,14 @@ function seatScore(M,o,groups,noise){
   var tot=0;
   groups.forEach(function(g){
     for(var a=0;a<g.length;a++) for(var b=a+1;b<g.length;b++) tot+=M.U[g[a]][g[b]]+(noise?noise[g[a]][g[b]]:0);
+    if(M.sv){ var es=g.map(function(i){ return M.sv[i]; }).filter(Boolean);
+      if(es.length>=2){
+        var mx=function(k){ return Math.max.apply(null,es.map(function(j){ return j.sc[k]; })); };
+        if(mx('E')<3) tot-=2;                                   // 이야기를 열어 줄 친구가 없음
+        if(o.size>2 && mx('C')<3) tot-=1.5;                     // 끝까지 챙길 친구가 없음
+        if(es.filter(function(j){ return j.sc.S<2.75; }).length>=2) tot-=1.5;   // 마음이 쉽게 흔들리는 친구끼리만
+        if(o.size>2){ var rs={}; es.forEach(function(j){ (j.roles||[]).forEach(function(r){ rs[r]=1; }); }); tot+=Math.min(Object.keys(rs).length,4)*0.4; }
+      } }
     if(o.size>2 && o.gender){ var m=0,f=0; g.forEach(function(i){ var x=M.studs[i].gender; if(x==='남') m++; else if(x==='여') f++; }); var d=Math.abs(m-f); if(d>1) tot-=(d-1)*3; }
   });
   return tot;
@@ -613,6 +651,11 @@ function seatReasons(M,o,g){
     if(o.mode==='mix' && p.cls==='mo') out.push(seatJo(A_.name,'과','와')+' '+B_.name+' 서로 ○인 사이지만 함께 챙기려고 그대로 두었어요');
     if(p.cls==='na') out.push('응답하지 않은 학생이 있어 관계를 다 알 수는 없어요');
     var k=A_.id<B_.id?A_.id+'|'+B_.id:B_.id+'|'+A_.id; if(M.seen[k]) out.push(seatJo(A_.name,'과','와')+' '+B_.name+' 지난 자리에서도 함께했어요');
+  }
+  if(M.sv){ var es=g.map(function(i){ return {s:M.studs[i],j:M.sv[i]}; }).filter(function(x){ return x.j; });
+    var hi=es.filter(function(x){ return x.j.sc.E>=3.75; }).sort(function(a,b){ return b.j.sc.E-a.j.sc.E; })[0], lo=es.filter(function(x){ return x.j.sc.E<2.75; })[0];
+    if(hi&&lo&&hi!==lo) out.push('어울리는 힘이 강한 '+seatJo(hi.s.name,'이','가')+' '+lo.s.name+'의 말문을 열어 줄 수 있어요');
+    if(g.length>2){ var rs={}; es.forEach(function(x){ (x.j.roles||[]).forEach(function(r){ rs[r]=1; }); }); if(Object.keys(rs).length>=3) out.push('맡고 싶은 역할이 고르게 섞였어요 ('+Object.keys(rs).slice(0,4).join(', ')+')'); }
   }
   return out.filter(function(x,k,arr){ return arr.indexOf(x)===k; });
 }
@@ -689,7 +732,8 @@ function seatAIPaint(){
 }
 
 function vSeats(v){
-  var o=seatOpt(), A=analyze(T.rid);
+  if(strNeedLoad(v)) return;
+  var o=seatOpt(), A=analyze(T.rid), SL=strLatest();
   var seps=seatLoad('sep'), hist=seatLoad('seathist'), nameOf={}; A.studs.forEach(function(s){ nameOf[s.id]=s.no+'. '+s.name; });
   var stOpts=A.studs.map(function(s){ return '<option value="'+s.id+'">'+esc(nameOf[s.id])+'</option>'; }).join('');
   var h='<div class="card noprint"><h2>짝·모둠 추천 <span class="sub">이번 회차 결과로 자리를 짜 드려요</span></h2>'+
@@ -697,7 +741,7 @@ function vSeats(v){
     '<div class="seat-opts">'+
       '<div><b>묶는 단위</b> <select id="szSel">'+[2,3,4,5,6].map(function(k){ return '<option value="'+k+'"'+(o.size===k?' selected':'')+'>'+(k===2?'짝 (2명, 홀수면 3명 한 팀)':'모둠 '+k+'명 안팎')+'</option>'; }).join('')+'</select></div>'+
       '<div><b>방향</b> '+[['mix','새 친구와 섞기'],['close','친한 친구와 함께'],['even','고르게 (갈등만 피하기)']].map(function(m){ return '<label><input type="radio" name="sm" value="'+m[0]+'"'+(o.mode===m[0]?' checked':'')+'> '+m[1]+'</label>'; }).join(' ')+'</div>'+
-      '<div><label><input type="checkbox" id="sgen"'+(o.gender?' checked':'')+'> '+(o.size===2?'남녀 짝으로':'남녀 고르게 섞기')+'</label> <label><input type="checkbox" id="shis"'+(o.history?' checked':'')+'> 지난 자리와 겹치지 않게</label> <span class="sub">(정해 둔 자리 '+hist.length+'개'+(hist.length?' · <a href="#" id="hClr">지우기</a>':'')+')</span></div>'+
+      '<div><label><input type="checkbox" id="sgen"'+(o.gender?' checked':'')+'> '+(o.size===2?'남녀 짝으로':'남녀 고르게 섞기')+'</label> <label><input type="checkbox" id="shis"'+(o.history?' checked':'')+'> 지난 자리와 겹치지 않게</label>'+(SL?' <label><input type="checkbox" id="sstr"'+(o.str!==false?' checked':'')+'> 성격 강점 고르게 섞기 <span class="sub">('+esc(SL.r.name)+')</span></label>':'')+' <span class="sub">(정해 둔 자리 '+hist.length+'개'+(hist.length?' · <a href="#" id="hClr">지우기</a>':'')+')</span></div>'+
     '</div>'+
     '<details style="margin-top:8px"><summary><b>떼어 놓을 학생</b> <span class="sub">설문에는 없지만 같이 앉으면 안 되는 사이 ('+seps.length+')</span></summary>'+
       '<div class="set-row" style="margin-top:6px"><select id="sepA">'+stOpts+'</select> 와(과) <select id="sepB">'+stOpts+'</select> <button class="btn sm" id="sepAdd">떼어 놓기</button></div>'+
@@ -727,7 +771,7 @@ function vSeats(v){
   var $=function(id){ return document.getElementById(id); };
   $('szSel').onchange=function(){ o.size=+this.value; o.res=null; draw(); };
   v.querySelectorAll('input[name=sm]').forEach(function(r){ r.onchange=function(){ o.mode=r.value; }; });
-  $('sgen').onchange=function(){ o.gender=this.checked; }; $('shis').onchange=function(){ o.history=this.checked; };
+  $('sgen').onchange=function(){ o.gender=this.checked; }; if($('sstr')) $('sstr').onchange=function(){ o.str=this.checked; }; $('shis').onchange=function(){ o.history=this.checked; };
   v.querySelectorAll('[data-out]').forEach(function(c){ c.onchange=function(){ o.out[c.dataset.out]=c.checked; }; });
   if($('hClr')) $('hClr').onclick=function(e){ e.preventDefault(); if(confirm('정해 둔 자리 기록을 지울까요?')){ seatSave('seathist',[]); draw(); } };
   $('sepAdd').onclick=function(){ var a=$('sepA').value, b=$('sepB').value; if(a===b){ toast('서로 다른 두 학생을 골라 주세요'); return; } var s=seatLoad('sep'); if(!s.some(function(p){ return (p[0]===a&&p[1]===b)||(p[0]===b&&p[1]===a); })) s.push([a,b]); seatSave('sep',s); toast('떼어 놓았어요'); draw(); };
@@ -750,6 +794,62 @@ function vSeats(v){
     G[gi][G[gi].indexOf(o.pick)]=id; G[gj][G[gj].indexOf(id)]=o.pick; o.pick=null; draw();
   }; });
 }
+
+/* ───────── 성격 강점 ───────── */
+function isStrR(r){ return !!r && (r.settings||{}).kind==='strength'; }
+function strRounds(){ return T.rounds.filter(isStrR); }
+function friendRounds(){ return T.rounds.filter(function(r){ return !isStrR(r); }); }
+function strMap(rid){ var m={}; (T.data[rid]||[]).forEach(function(x){ var j=STR.parse(x); if(j&&j.sc) m[x.sid]=j; }); return m; }
+function strLatest(){ var l=strRounds(); if(!l.length) return null; var r=l[l.length-1]; if(!T.data[r.id]) return null; var m=strMap(r.id); return Object.keys(m).length?{r:r,m:m}:null; }
+function strEnsure(){ var l=strRounds(); if(!l.length) return Promise.resolve(); var r=l[l.length-1]; return T.data[r.id]?Promise.resolve():loadRound(r.id); }
+function strNeedLoad(v){ var l=strRounds(); if(!l.length||T.data[l[l.length-1].id]) return false; if(v) v.innerHTML='<div class="card">불러오는 중...</div>'; strEnsure().then(draw).catch(fail); return true; }
+function strRoundFor(){ var r=round(); if(isStrR(r)) return r; var l=strRounds(); return l.length?l[l.length-1]:null; }
+function vStrength(v){
+  var sr=strRoundFor();
+  if(!sr){
+    v.innerHTML='<div class="card"><h2>성격 강점 조사</h2><div class="sub">학생이 나에 대한 문항 20개에 답하면, 다섯 가지 힘(어울리는 힘 · 배려하는 힘 · 끝까지 하는 힘 · 마음을 다스리는 힘 · 궁금해하는 힘)을 막대로 보여 줘요. '+
+      '성격 5요인(Big Five) 틀을 바탕으로 초등학생 말로 쓴 문항이고, 유형 이름을 붙이지 않아요.</div>'+
+      '<ul class="sub" style="line-height:1.8;margin-top:8px"><li>학생은 같은 4자리 코드로 들어와요.</li><li>제출하면 학생에게 <b>나의 강점 카드</b>를 보여 줄 수 있어요.</li><li>[짝·모둠 추천]에서 강점을 고르게 섞고, AI 분석에서도 함께 읽어요.</li></ul>'+
+      '<button class="btn main" id="mkStr" style="margin-top:8px">성격 강점 조사 만들기</button></div>';
+    document.getElementById('mkStr').onclick=function(){ newRound('strength'); }; return;
+  }
+  if(!T.data[sr.id]){ v.innerHTML='<div class="card">불러오는 중...</div>'; loadRound(sr.id).then(draw).catch(fail); return; }
+  var fr=friendRounds(), lastF=fr.length?fr[fr.length-1]:null;
+  if(lastF&&!T.data[lastF.id]){ loadRound(lastF.id).then(draw).catch(function(){}); }
+  var M=strMap(sr.id), studs=active(), got=studs.filter(function(s){ return M[s.id]; });
+  var key=T.strSort||'no';
+  var rows=studs.slice().sort(function(a,b){ if(key==='no') return a.no-b.no; var x=M[a.id]?M[a.id].sc[key]:-1, y=M[b.id]?M[b.id].sc[key]:-1; return y-x||a.no-b.no; });
+  var avg={}; STR.traits.forEach(function(t){ var s=0; got.forEach(function(g){ s+=M[g.id].sc[t.k]; }); avg[t.k]=got.length?Math.round(s/got.length*100)/100:null; });
+  // 함께 살펴볼 학생 (교우관계 자료가 있으면 함께)
+  var A=lastF&&T.data[lastF.id]?analyze(lastF.id):null, notes=[];
+  got.forEach(function(s){ var sc=M[s.id].sc;
+    if(sc.S<2.75) notes.push('<b>'+esc(s.name)+'</b> 마음을 다스리는 힘이 자라는 중이에요. 걱정이 많거나 화를 가라앉히기 어렵다고 답했어요.');
+    if(A&&A.st[s.id]&&sc.E<2.75&&A.st[s.id].mutualO===0&&A.n>=3) notes.push('<b>'+esc(s.name)+'</b> 어울리는 힘이 자라는 중이고, '+esc(lastF.name)+'에서 서로 ○ 친구가 없었어요.');
+    if(A&&A.st[s.id]&&sc.A>=4.25&&A.st[s.id].rO<=1&&A.n>=3) notes.push('<b>'+esc(s.name)+'</b> 배려하는 힘이 아주 강한데, '+esc(lastF.name)+'에서 받은 ○가 적었어요. 이 힘이 친구들에게 보일 기회를 만들어 주세요.');
+  });
+  var h='<div class="card"><h2>'+esc(sr.name)+' <span class="sub">'+got.length+' / '+studs.length+'명 응답'+(isStrR(round())?'':' · 가장 최근 성격 강점 조사')+'</span></h2>'+
+    '<div class="str-sum">'+STR.traits.map(function(t){ var v2=avg[t.k], cnt=[0,0,0,0,0]; got.forEach(function(g){ cnt[STR.level(M[g.id].sc[t.k]).n]++; });
+      return '<div class="str-t"><div class="str-tn" style="color:'+t.color+'">'+esc(t.name)+'</div><div class="stb-bar" style="background:'+t.soft+'"><i style="width:'+STR.pct(v2)+'%;background:'+t.color+'"></i></div>'+
+        '<div class="sub">반 평균 '+(v2==null?'-':v2.toFixed(1))+' · 아주 강해요 '+cnt[4]+'명 · 자라는 중 '+cnt[1]+'명</div></div>'; }).join('')+'</div>'+
+    '<div class="sub" style="margin-top:8px">점수는 1~5점이에요. 문항마다 학생이 스스로 고른 답이라, 진단이 아니라 아이를 이해하는 실마리로 써 주세요.</div></div>';
+  if(notes.length) h+='<div class="card"><h2>함께 살펴볼 학생</h2><ul class="sub" style="line-height:1.8;padding-left:18px">'+notes.map(function(n){ return '<li>'+n+'</li>'; }).join('')+'</ul></div>';
+  h+='<div class="card"><h2>학생별 강점 <span class="sub">제목을 누르면 그 힘이 강한 순서로</span></h2><div style="overflow-x:auto"><table class="tbl str-tbl"><tr><th data-k="no" style="cursor:pointer">번호 · 이름</th>'+
+    STR.traits.map(function(t){ return '<th data-k="'+t.k+'" style="cursor:pointer;color:'+t.color+'">'+esc(t.name)+(key===t.k?' ▼':'')+'</th>'; }).join('')+'<th>맡고 싶은 역할</th><th>나의 좋은 점</th><th class="noprint"></th></tr>'+
+    rows.map(function(s){ var j=M[s.id];
+      if(!j) return '<tr><td>'+s.no+'. '+esc(s.name)+'</td><td colspan="'+(STR.traits.length+3)+'" class="sub">아직 안 냈어요</td></tr>';
+      return '<tr><td>'+s.no+'. '+esc(s.name)+'</td>'+STR.traits.map(function(t){ var x=j.sc[t.k];
+        return '<td><div class="str-cell"><div class="stb-bar" style="background:'+t.soft+'"><i style="width:'+STR.pct(x)+'%;background:'+t.color+'"></i></div><span>'+x.toFixed(1)+'</span></div></td>'; }).join('')+
+        '<td>'+esc((j.roles||[]).join(', '))+'</td><td style="max-width:240px">'+esc(j.me||'')+'</td><td class="noprint"><button class="btn sm" data-card="'+s.id+'">카드</button></td></tr>'; }).join('')+
+    '</table></div><div class="row noprint" style="margin-top:10px"><button class="btn" id="strPrT">이 표 인쇄</button><button class="btn" id="strPrC">강점 카드 모두 인쇄</button></div></div>';
+  h+='<div class="card strcards"><details id="strCardsD"><summary style="cursor:pointer;font-weight:700">학생 강점 카드 모아 보기 ('+got.length+')</summary><div class="strgrid">'+
+    got.map(function(s){ return STR.card(s.name,M[s.id],{round:sr.name}); }).join('')+'</div></details></div>';
+  v.innerHTML=h;
+  v.querySelectorAll('.str-tbl th[data-k]').forEach(function(th){ th.onclick=function(){ T.strSort=th.dataset.k; draw(); }; });
+  v.querySelectorAll('[data-card]').forEach(function(b){ b.onclick=function(){ var s=studs.filter(function(x){return x.id===b.dataset.card;})[0]; modal(STR.card(s.name,M[s.id],{round:sr.name}),[['닫기']]); }; });
+  document.getElementById('strPrT').onclick=function(){ window.print(); };
+  document.getElementById('strPrC').onclick=function(){ document.getElementById('strCardsD').open=true; document.body.classList.add('print-cards'); setTimeout(function(){ window.print(); },50); };
+}
+window.addEventListener('afterprint',function(){ document.body.classList.remove('print-cards'); });
 
 /* 응답 현황 */
 function vStatus(v){
@@ -1149,7 +1249,7 @@ function deepShow(v,show){ if(typeof v==='string') return show(v); if(Array.isAr
 
 /* AI에 보낼 자료 만들기 (이름은 모두 번호로) */
 function aiPayload(rid,sid){
-  var A=analyze(rid), G=groupsOf(A), r=round(rid), an=makeAnon(A.studs), T_=an.tok;
+  var A=analyze(rid), G=groupsOf(A), r=round(rid), an=makeAnon(A.studs), T_=an.tok, SL=strLatest();
   var qs=r.settings.questions||[];
   function rel(id,v){ var x=A.resp[id]; return x?A.studs.filter(function(s){return s.id!==id&&x.rel[s.id]===v;}).map(function(s){return T_[s.id];}):[]; }
   var students=A.studs.map(function(s){ var x=A.st[s.id], resp=A.resp[s.id];
@@ -1161,15 +1261,17 @@ function aiPayload(rid,sid){
     o.사이가_안좋다는_이유=x.conflict.map(function(p){ return an.hide(p.reason||''); });
     o.살펴볼_표시=x.flags;
     if(A.has5){ o.받은_평균점수=x.rAvg; o.준_평균점수=x.gAvg; }
+    var SJ=SL&&SL.m[s.id]; if(SJ){ o.성격강점={}; STR.traits.forEach(function(t){ o.성격강점[t.name]=SJ.sc[t.k]; }); o.성격강점.맡고싶은역할=SJ.roles||[]; o.성격강점.나의좋은점=an.hide(String(SJ.me||'').slice(0,200)); }
     return o; });
   var data={회차:r.name,학생수:A.studs.length,제출:A.n,관계_표시:A.has5?'5점 척도(5 아주 친해, 4 친해, 3 보통, 2 조금 불편, 1 사이가 안 좋아). O는 4~5점, X는 1~2점으로 셈':'○ 친해, △ 보통, X 사이가 안 좋아',
     친구그룹:G.groups.map(function(g){return g.map(function(id){return T_[id];});}),
     서로_O_친구가_없는_학생:G.alone.map(function(id){return T_[id];}),
     그룹사이_갈등:G.between.slice(0,10).map(function(b){ return {그룹:[G.groups[b.i].map(function(id){return T_[id];}),G.groups[b.j].map(function(id){return T_[id];})],서로X:b.r,엇갈림:b.y,한쪽X:b.ox}; }),
     학생:students};
+  if(SL) data.성격강점_설명=SL.r.name+'에서 학생이 스스로 답한 자기 보고 점수예요. 1~5점이고 높을수록 그 힘이 강하다고 스스로 느낀다는 뜻이에요(마음을 다스리는 힘이 낮으면 걱정이 많거나 화를 가라앉히기 어렵다고 답한 것). 진단이 아니니 조심스럽게 해석해.';
   // 지난 회차와 비교 (불러와 있으면)
-  var ids=T.rounds.map(function(x){return x.id;}), pi=ids.indexOf(rid)-1;
-  if(pi>=0&&T.data[ids[pi]]){ var P=analyze(ids[pi]); data.지난회차=T.rounds[pi].name;
+  var FRs=friendRounds(), ids=FRs.map(function(x){return x.id;}), pi=ids.indexOf(rid)-1;
+  if(pi>=0&&T.data[ids[pi]]){ var P=analyze(ids[pi]); data.지난회차=FRs[pi].name;
     data.지난회차와_비교=A.studs.filter(function(s){return P.st[s.id];}).map(function(s){ var a=P.st[s.id], b=A.st[s.id]; return {학생:T_[s.id],받은_O:a.rO+'→'+b.rO,받은_X:a.rX+'→'+b.rX,서로_O:a.mutualO+'→'+b.mutualO}; }); }
   if(sid){ data.분석할_학생=T_[sid]; }
   return {data:data,an:an};
@@ -1261,6 +1363,7 @@ function aiStatusLine(){
 
 /* AI 분석 탭 */
 function vAI(v){
+  if(strNeedLoad(v)) return;
   var A=analyze(T.rid), rd=round();
   if(A.n<3){ v.innerHTML='<div class="card center"><h2>아직 분석할 응답이 적어요</h2><div class="sub">3명 이상 제출하면 AI 분석을 할 수 있어요.</div></div>'; return; }
   T.aiSel=T.aiSel&&A.st[T.aiSel]?T.aiSel:'';
@@ -1356,14 +1459,15 @@ function vAnswers(v){
 
 /* 회차 비교 */
 function vCompare(v){
-  if(T.rounds.length<2){ v.innerHTML='<div class="card center"><h2>비교하려면 회차가 두 개 이상 있어야 해요</h2><div class="sub">다음 설문 때 [새 회차 만들기]를 누르면 지난 회차와 비교할 수 있어요.</div></div>'; return; }
-  var ids=T.rounds.map(function(r){return r.id;});
+  var FR=friendRounds();
+  if(FR.length<2){ v.innerHTML='<div class="card center"><h2>비교하려면 회차가 두 개 이상 있어야 해요</h2><div class="sub">다음 설문 때 [새 회차 만들기]를 누르면 지난 회차와 비교할 수 있어요.</div></div>'; return; }
+  var ids=FR.map(function(r){return r.id;});
   if(!T.cmpB||ids.indexOf(T.cmpB)<0) T.cmpB=T.rid;
   if(!T.cmpA||ids.indexOf(T.cmpA)<0||T.cmpA===T.cmpB){ var bi=ids.indexOf(T.cmpB); T.cmpA=ids[bi>0?bi-1:1]; }
   var need=[T.cmpA,T.cmpB].filter(function(id){return !T.data[id];});
   if(need.length){ v.innerHTML='<div class="card">불러오는 중...</div>'; Promise.all(need.map(loadRound)).then(draw).catch(fail); return; }
   var A=analyze(T.cmpA), B=analyze(T.cmpB), ra=round(T.cmpA), rb=round(T.cmpB);
-  function sel(id,cur){ return '<select id="'+id+'">'+T.rounds.map(function(r){return '<option value="'+r.id+'"'+(r.id===cur?' selected':'')+'>'+esc(r.name)+'</option>';}).join('')+'</select>'; }
+  function sel(id,cur){ return '<select id="'+id+'">'+FR.map(function(r){return '<option value="'+r.id+'"'+(r.id===cur?' selected':'')+'>'+esc(r.name)+'</option>';}).join('')+'</select>'; }
   function dl(a,b){ if(a==null||b==null||a==='-'||b==='-') return '<span class="same">-</span>'; var d=b-a; return d>0?'<span class="up">+'+d+'</span>':d<0?'<span class="down">'+d+'</span>':'<span class="same">0</span>'; }
   var h='<div class="card noprint">'+sel('ca',T.cmpA)+' 와(과) '+sel('cb',T.cmpB)+' 비교 <button class="btn sm" onclick="window.print()">인쇄</button>'+
     '<div class="sub" style="margin-top:6px">'+esc(ra.name)+' 제출 '+A.n+'명, '+esc(rb.name)+' 제출 '+B.n+'명. 제출 인원이 다르면 숫자 차이가 날 수 있어요.</div></div>';
@@ -1433,6 +1537,17 @@ function vSettings(v){
       '<div class="sub" style="margin-top:6px">지난 자료를 남겨 두려면 먼저 위의 [시트 열기] → 파일 → <b>사본 만들기</b>로 시트를 보관해 두세요. (지운 자료는 되돌릴 수 없어요)</div>'+
       '<div class="set-row"><label><input type="checkbox" id="rsRoster" checked> 학생 명단과 코드도 지우기 (새 반이면 켜 두세요)</label></div>'+
       '<button class="btn warn" id="rsAll">전체 초기화</button></div>';
+  if(s.kind==='strength'){
+    v.querySelectorAll('#view > .card').forEach(function(c){ var h=c.querySelector('h2'); if(h&&/서술형 질문|친구 관계 표시|칭찬하고 싶은 친구|사이가 좋지 않은 친구|선생님께 한마디/.test(h.textContent)) c.style.display='none'; });
+    ['title','intro'].forEach(function(id){ var e=document.getElementById(id); if(e) e.closest('.set-row').style.display='none'; });
+    var first=v.querySelector('#view > .card'), box=document.createElement('div'); box.className='card';
+    box.innerHTML='<h2>성격 강점 조사 설정 <span class="sub">문항 '+STR.items.length+'개는 고정이에요</span></h2>'+
+      '<div class="set-row"><label style="width:90px">제목</label><input id="strTitle" value="'+esc(s.strTitle||'나의 강점 찾기')+'" style="flex:1"></div>'+
+      '<div class="set-row" style="align-items:flex-start"><label style="width:90px">안내 문구</label><textarea id="strIntro" style="flex:1">'+esc(s.strIntro||'나는 어떤 사람일까요? 맞고 틀린 답은 없어요. 나와 가장 비슷한 것을 골라 주세요. 선생님만 봐요.')+'</textarea></div>'+
+      '<div class="set-row"><label><input type="checkbox" id="showCard"'+(s.showCard===false?'':' checked')+'> 제출한 뒤 학생에게 나의 강점 카드 보여 주기</label></div>'+
+      '<details><summary class="sub" style="cursor:pointer">문항 보기</summary><ol class="sub" style="padding-left:20px;line-height:1.7">'+STR.items.map(function(it){ return '<li>'+esc(it.q)+' <span style="color:#A79C8F">('+esc(STR.byK(it.t).name)+(it.r?', 거꾸로 셈':'')+')</span></li>'; }).join('')+'</ol></details>';
+    first.after(box);
+  }
   function collectQ(){ return [].map.call(v.querySelectorAll('#qbox input'),function(x){return x.value;}); }
   function rebindQ(){ v.querySelectorAll('[data-del]').forEach(function(b){ b.onclick=function(){ var qs=collectQ(); qs.splice(+b.dataset.del,1); document.getElementById('qbox').innerHTML=qs.map(function(t,i){return q(i,t);}).join(''); rebindQ(); }; }); }
   rebindQ();
@@ -1443,6 +1558,8 @@ function vSettings(v){
       requireAllRelations:chk('reqAll'), relScale:(((v.querySelector('input[name=sc]:checked')||{}).value)==='5'&&T.shellVer>=2)?5:3, praiseMode:pm, praiseMale:num('pmM'), praiseFemale:num('pmF'), praiseAny:Math.max(1,num('pmA')),
       praiseRequired:chk('pReq'), praiseQuestion:val('pQ'), conflictMax:num('cMax'), conflictQuestion:val('cQ'), askTeacherMessage:chk('tMsg') };
     if(pm==='gender'&&ns.praiseMale+ns.praiseFemale===0) ns.praiseMode='off';
+    ns=Object.assign({},s,ns);
+    if(s.kind==='strength'){ ns.strTitle=val('strTitle')||'나의 강점 찾기'; ns.strIntro=val('strIntro'); ns.showCard=chk('showCard'); }
     call('updateRound',T.token,T.rid,{name:val('rname'),settings:ns}).then(function(x){ T.rounds=x; draw(); toast('저장했어요'); }).catch(fail);
   };
   document.getElementById('delR').onclick=function(){
