@@ -61,6 +61,24 @@ var STR = (function () {
     return traits.map(function (t) { var v = sc[t.k], L = level(v);
       return '<div class="stb"><div class="stb-n">' + esc(t.name) + '</div><div class="stb-bar" style="background:' + t.soft + '"><i style="width:' + pct(v) + '%;background:' + t.color + '"></i></div><div class="stb-l">' + L.t + '</div></div>'; }).join('');
   }
+  // 오각형 그림 (avg 를 주면 반 평균을 점선으로 함께)
+  function radar(sc, avg, size) {
+    size = size || 300; var c = size / 2, R = size * 0.30, n = traits.length;
+    function pt(i, v) { var a = -Math.PI / 2 + i * 2 * Math.PI / n, r = R * Math.max(0, (v - 1)) / 4; return [c + r * Math.cos(a), c + r * Math.sin(a)]; }
+    function poly(f) { return traits.map(function (t, i) { var p = pt(i, f(t)); return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); }
+    var g = '';
+    for (var lv = 2; lv <= 5; lv++) g += '<polygon points="' + poly(function () { return lv; }) + '" fill="' + (lv === 5 ? '#FFFCF7' : 'none') + '" stroke="#E8DECF" stroke-width="1"/>';
+    traits.forEach(function (t, i) { var p = pt(i, 5); g += '<line x1="' + c + '" y1="' + c + '" x2="' + p[0].toFixed(1) + '" y2="' + p[1].toFixed(1) + '" stroke="#EFE5D6"/>'; });
+    if (avg) g += '<polygon points="' + poly(function (t) { return avg[t.k] || 1; }) + '" fill="none" stroke="#A79C8F" stroke-width="1.6" stroke-dasharray="4 4"/>';
+    g += '<polygon points="' + poly(function (t) { return sc[t.k]; }) + '" fill="#8FD3B6" fill-opacity="0.35" stroke="#3E9A7A" stroke-width="2.4" stroke-linejoin="round"/>';
+    traits.forEach(function (t, i) { var p = pt(i, sc[t.k]); g += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="5" fill="' + t.color + '" stroke="#fff" stroke-width="2"/>'; });
+    traits.forEach(function (t, i) { var a = -Math.PI / 2 + i * 2 * Math.PI / n, lx = c + (R + 22) * Math.cos(a), ly = c + (R + 22) * Math.sin(a), anc = Math.cos(a) > 0.3 ? 'start' : Math.cos(a) < -0.3 ? 'end' : 'middle';
+      if (Math.sin(a) < -0.9) ly -= 6;
+      g += '<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" text-anchor="' + anc + '" font-size="12.5" font-weight="700" fill="' + t.color + '">' + esc(t.name) + '</text>' +
+        '<text x="' + lx.toFixed(1) + '" y="' + (ly + 15).toFixed(1) + '" text-anchor="' + anc + '" font-size="11.5" fill="#5E5750">' + (sc[t.k] == null ? '-' : sc[t.k].toFixed(1)) + ' · ' + ['-', '자라는 중', '보통', '강함', '아주 강함'][level(sc[t.k]).n] + '</text>'; });
+    return '<svg class="stc-radar" viewBox="-40 -6 ' + (size + 80) + ' ' + (size + 16) + '" xmlns="http://www.w3.org/2000/svg">' + g + '</svg>' +
+      (avg ? '<div class="stc-leg"><span><i style="background:#3E9A7A"></i>이 학생</span><span><i class="dash"></i>반 평균</span></div>' : '');
+  }
   // 학생에게 보여 주는 강점 카드
   function card(name, j, opt) {
     opt = opt || {};
@@ -69,7 +87,7 @@ var STR = (function () {
     return '<div class="stcard">' +
       '<div class="stc-head"><div class="stc-t">' + esc(name) + '의 강점 카드</div>' + (opt.round ? '<div class="stc-s">' + esc(opt.round) + '</div>' : '') + '</div>' +
       '<div class="stc-top" style="background:' + top.soft + '"><small>나의 가장 큰 힘</small><b style="color:' + top.color + '">' + esc(top.name) + '</b><span>' + esc(top.desc) + '</span></div>' +
-      '<div class="stc-bars">' + bars(sc) + '</div>' +
+      (opt.radar ? '<div class="stc-bars">' + radar(sc, opt.avg) + '</div>' : '<div class="stc-bars">' + bars(sc) + '</div>') +
       ((j.roles || []).length ? '<div class="stc-row"><small>모둠에서 맡고 싶은 역할</small><div>' + j.roles.map(function (r) { return '<span class="stc-chip">' + esc(r) + '</span>'; }).join('') + '</div></div>' : '') +
       (j.me ? '<div class="stc-row"><small>내가 자랑하고 싶은 나의 좋은 점</small><div class="stc-me">' + esc(j.me) + '</div></div>' : '') +
       '<div class="stc-row stc-grow"><small>' + esc(second.name) + '도 나의 힘이에요. 더 키워 볼 힘은 ' + esc(low.name) + '!</small><div>' + esc(low.grow) + '</div></div>' +
@@ -80,7 +98,8 @@ var STR = (function () {
     '.stc-top{border-radius:16px;padding:12px 14px;margin-bottom:12px;display:flex;flex-direction:column;gap:2px}.stc-top small{font-size:12px;color:#5E5750}.stc-top b{font-family:Jua,sans-serif;font-weight:400;font-size:26px}.stc-top span{font-size:13px;color:#5E5750}' +
     '.stb{display:grid;grid-template-columns:118px 1fr 92px;gap:8px;align-items:center;margin:6px 0}.stb-n{font-size:14px;font-weight:700;color:#3B3631}.stb-bar{height:14px;border-radius:999px;overflow:hidden}.stb-bar i{display:block;height:100%;border-radius:999px}.stb-l{font-size:12px;color:#5E5750;text-align:right}' +
     '.stc-row{margin-top:10px}.stc-row small{display:block;font-size:12px;color:#8A7F73;margin-bottom:3px}.stc-chip{display:inline-block;background:#F6EFE5;border-radius:999px;padding:3px 10px;font-size:13px;margin:2px 4px 2px 0}.stc-me{font-size:14px;line-height:1.5}' +
+    '.stc-radar{display:block;width:100%;max-width:360px;margin:0 auto}.stc-leg{display:flex;justify-content:center;gap:14px;font-size:12px;color:#5E5750;margin-top:2px}.stc-leg i{display:inline-block;width:18px;height:0;border-top:3px solid #3E9A7A;vertical-align:middle;margin-right:4px}.stc-leg i.dash{border-top:2px dashed #A79C8F}' +
     '.stc-grow{background:#F7F3EC;border-radius:12px;padding:10px 12px}.stc-grow div{font-size:14px;line-height:1.5}.stc-foot{margin-top:10px;font-size:12px;color:#A79C8F;text-align:center}';
   try { var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); } catch (e) {}
-  return { traits: traits, items: items, scale: scale, roles: roles, byK: byK, score: score, level: level, order: order, pct: pct, parse: parse, pack: pack, bars: bars, card: card };
+  return { traits: traits, items: items, scale: scale, roles: roles, byK: byK, score: score, level: level, order: order, pct: pct, parse: parse, pack: pack, bars: bars, radar: radar, card: card };
 })();

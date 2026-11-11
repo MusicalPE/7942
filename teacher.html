@@ -277,7 +277,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.4.3', NEED_SHELL=1;
+var APP_VER='2.5.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -876,7 +876,7 @@ function vStrength(v){
   if(document.getElementById('strAI_class')) strAIPaint(sr,null);
   v.querySelectorAll('.str-tbl th[data-k]').forEach(function(th){ th.onclick=function(){ T.strSort=th.dataset.k; draw(); }; });
   v.querySelectorAll('[data-card]').forEach(function(b){ b.onclick=function(){ var s=studs.filter(function(x){return x.id===b.dataset.card;})[0], j=M[s.id];
-    modal(STR.card(s.name,j,{round:sr.name})+'<div class="sub" style="text-align:center;margin-top:8px">'+STR.traits.map(function(t){ return esc(t.name)+' '+j.sc[t.k].toFixed(1); }).join(' · ')+'</div><div class="str-ai" id="strAI_'+s.id+'"></div>',[['닫기']]); strAIPaint(sr,s.id); }; });
+    modal(STR.card(s.name,j,{round:sr.name,radar:true,avg:avg})+'<div class="str-ai" id="strAI_'+s.id+'"></div>',[['닫기']]); strAIPaint(sr,s.id); }; });
   var sm=document.getElementById('strSortM'); if(sm) sm.onchange=function(){ T.strSort=sm.value; draw(); };
   document.getElementById('strPrT').onclick=function(){ window.print(); };
   document.getElementById('strPrC').onclick=function(){ document.getElementById('strCardsD').open=true; document.body.classList.add('print-cards'); setTimeout(function(){ window.print(); },50); };
