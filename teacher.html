@@ -232,6 +232,16 @@
   .str-cell{display:flex;align-items:center;gap:6px;min-width:96px}.str-cell .stb-bar{flex:1;height:10px}.str-cell span{font-size:12px;color:#5E5750;width:24px;text-align:right}
   .strgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:12px}
   @media print{ body.print-cards #view > .card:not(.strcards){display:none!important} body.print-cards .strcards summary{display:none} body.print-cards .strcards{border:0;box-shadow:none;padding:0} .strgrid{grid-template-columns:1fr 1fr} }
+  #rt .btn{white-space:nowrap} #rt .cdl{display:none}
+  @media (max-width:640px){
+    #rt,#rt tbody{display:block}
+    #rt tr:first-child{display:none}
+    #rt tr{display:grid;grid-template-columns:54px minmax(0,1fr) 64px 76px;gap:8px 6px;align-items:center;padding:10px 0;border-bottom:1px solid #EFE5D6}
+    #rt td{display:block;padding:0;border:0;min-width:0}
+    #rt td input,#rt td select{width:100%!important;min-width:0}
+    #rt td.cd{grid-column:1 / 3;font-size:15px} #rt .cdl{display:inline;font-size:12px;color:#8A7F73}
+    #rt td.bt{grid-column:3 / 5;text-align:right}
+  }
   /* ───── 인쇄 (마지막에 두어 화면 꾸밈보다 앞서게) ───── */
   @page{size:A4 landscape;margin:10mm}
   @media print{
@@ -255,7 +265,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.3.0', NEED_SHELL=1;
+var APP_VER='2.3.1', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -1634,7 +1644,7 @@ function vRoster(v){
       R.map(function(s){ return '<tr data-id="'+esc(s.id)+'"'+(s.status==='전출'?' style="opacity:.55"':'')+'><td><input class="no" value="'+esc(s.no)+'" style="width:52px"></td><td><input class="nm" value="'+esc(s.name)+'" style="width:100%"></td>'+
         '<td><select class="gd"><option value=""></option><option'+(s.gender==='남'?' selected':'')+'>남</option><option'+(s.gender==='여'?' selected':'')+'>여</option></select></td>'+
         '<td><select class="st"><option'+(s.status!=='전출'?' selected':'')+'>재학</option><option'+(s.status==='전출'?' selected':'')+'>전출</option></select></td>'+
-        '<td><b style="letter-spacing:2px">'+esc(s.code)+'</b></td><td><button class="btn sm" data-rg="'+s.id+'">새 코드</button> <button class="btn sm warn" data-del="'+s.id+'">빼기</button></td></tr>'; }).join('')+'</table></div>'+
+        '<td class="cd"><span class="cdl">코드 </span><b style="letter-spacing:2px">'+esc(s.code)+'</b></td><td class="bt"><button class="btn sm" data-rg="'+s.id+'">새 코드</button> <button class="btn sm warn" data-del="'+s.id+'">빼기</button></td></tr>'; }).join('')+'</table></div>'+
       '<div class="noprint" style="display:flex;gap:6px;margin-top:10px"><span style="flex:1"></span><button class="btn main" id="sv" disabled>바뀐 내용 저장</button></div>'
       :'<p class="sub" style="margin-top:8px">아직 등록된 학생이 없어요. 위에서 붙여 넣거나 한 명씩 추가해 주세요.</p>')+
     '</div>'+
