@@ -242,15 +242,11 @@
     #rt td.cd{grid-column:1 / 3;font-size:15px} #rt .cdl{display:inline;font-size:12px;color:#8A7F73}
     #rt td.bt{grid-column:3 / 5;text-align:right}
   }
-  .str-mlist{display:none}
-  .str-mi{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #EFE5D6}
-  .str-mi b{flex:0 0 auto;min-width:76px}
-  .str-mi .str-chip{flex:1;min-width:0;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .str-mi .sub{flex:1}
-  .str-mi .btn{white-space:nowrap}
   #modalBox .stcard{border:0;padding:0}
-  @media (max-width:640px){ .str-mlist{display:block} .str-pc{display:none!important} }
-  @media print{ .str-mlist{display:none!important} .str-pc{display:block!important} }
+  .str-mbl{display:none} .str-nm{cursor:pointer}
+  @media (max-width:640px){ .str-nm{text-decoration:underline;text-decoration-color:#C9BCA9;text-underline-offset:3px} }
+  @media (max-width:640px){ .str-txt{display:none} .str-mbl{display:inline} .str-pcl{display:none} .str-tbl td,.str-tbl th{padding:6px 4px;white-space:nowrap} .str-cell{min-width:64px} .str-tbl th{font-size:12px} }
+  @media print{ .str-txt{display:table-cell!important} }
   /* ───── 인쇄 (마지막에 두어 화면 꾸밈보다 앞서게) ───── */
   @page{size:A4 landscape;margin:10mm}
   @media print{
@@ -274,7 +270,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.3.2', NEED_SHELL=1;
+var APP_VER='2.3.3', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -852,27 +848,21 @@ function vStrength(v){
         '<div class="sub">반 평균 '+(v2==null?'-':v2.toFixed(1))+' · 아주 강해요 '+cnt[4]+'명 · 자라는 중 '+cnt[1]+'명</div></div>'; }).join('')+'</div>'+
     '<div class="sub" style="margin-top:8px">점수는 1~5점이에요. 문항마다 학생이 스스로 고른 답이라, 진단이 아니라 아이를 이해하는 실마리로 써 주세요.</div></div>';
   if(notes.length) h+='<div class="card"><h2>함께 살펴볼 학생</h2><ul class="sub" style="line-height:1.8;padding-left:18px">'+notes.map(function(n){ return '<li>'+n+'</li>'; }).join('')+'</ul></div>';
-  h+='<div class="card"><h2>학생별 강점 <span class="sub str-pc">제목을 누르면 그 힘이 강한 순서로</span></h2>'+
-    '<div class="str-mlist"><div class="sub" style="margin-bottom:6px">색 칸은 그 학생의 가장 큰 힘이에요.</div><select id="strSortM" style="width:100%;margin-bottom:8px"><option value="no">번호 순서로</option>'+STR.traits.map(function(t){ return '<option value="'+t.k+'"'+(key===t.k?' selected':'')+'>'+esc(t.name)+'이 강한 순서로</option>'; }).join('')+'</select>'+
-    rows.map(function(s){ var j=M[s.id];
-      if(!j) return '<div class="str-mi"><b>'+s.no+'. '+esc(s.name)+'</b><span class="sub">아직 안 냈어요</span></div>';
-      var t=key!=='no'?STR.byK(key):STR.byK(STR.order(j.sc)[0]);
-      return '<div class="str-mi"><b>'+s.no+'. '+esc(s.name)+'</b><span class="str-chip" style="background:'+t.soft+';color:'+t.color+'">'+(key!=='no'?esc(t.name)+' '+j.sc[key].toFixed(1):esc(t.name))+'</span><button class="btn sm" data-card="'+s.id+'">결과 보기</button></div>'; }).join('')+'</div>'+
-    '<div class="str-pc" style="overflow-x:auto"><table class="tbl str-tbl"><tr><th data-k="no" style="cursor:pointer">번호 · 이름</th>'+
-    STR.traits.map(function(t){ return '<th data-k="'+t.k+'" style="cursor:pointer;color:'+t.color+'">'+esc(t.name)+(key===t.k?' ▼':'')+'</th>'; }).join('')+'<th>맡고 싶은 역할</th><th>나의 좋은 점</th><th class="noprint"></th></tr>'+
+  h+='<div class="card"><h2>학생별 강점 <span class="sub">제목을 누르면 그 힘이 강한 순서로<span class="str-mbl"> · 이름을 누르면 답과 강점 카드</span></span></h2>'+
+    '<div style="overflow-x:auto"><table class="tbl str-tbl"><tr><th data-k="no" style="cursor:pointer">번호 · 이름</th>'+
+    STR.traits.map(function(t){ return '<th data-k="'+t.k+'" style="cursor:pointer;color:'+t.color+'">'+esc(t.name)+(key===t.k?' ▼':'')+'</th>'; }).join('')+'<th class="str-txt">맡고 싶은 역할</th><th class="str-txt">나의 좋은 점</th><th class="noprint"></th></tr>'+
     rows.map(function(s){ var j=M[s.id];
       if(!j) return '<tr><td>'+s.no+'. '+esc(s.name)+'</td><td colspan="'+(STR.traits.length+3)+'" class="sub">아직 안 냈어요</td></tr>';
-      return '<tr><td>'+s.no+'. '+esc(s.name)+'</td>'+STR.traits.map(function(t){ var x=j.sc[t.k];
+      return '<tr><td class="str-nm" data-card="'+s.id+'">'+s.no+'. '+esc(s.name)+'</td>'+STR.traits.map(function(t){ var x=j.sc[t.k];
         return '<td><div class="str-cell"><div class="stb-bar" style="background:'+t.soft+'"><i style="width:'+STR.pct(x)+'%;background:'+t.color+'"></i></div><span>'+x.toFixed(1)+'</span></div></td>'; }).join('')+
-        '<td>'+esc((j.roles||[]).join(', '))+'</td><td style="max-width:240px">'+esc(j.me||'')+'</td><td class="noprint"><button class="btn sm" data-card="'+s.id+'">카드</button></td></tr>'; }).join('')+
-    '</table></div><div class="row noprint" style="margin-top:10px"><button class="btn str-pc" id="strPrT">이 표 인쇄</button><button class="btn" id="strPrC">강점 카드 모두 인쇄</button></div></div>';
+        '<td class="str-txt">'+esc((j.roles||[]).join(', '))+'</td><td class="str-txt" style="max-width:240px">'+esc(j.me||'')+'</td><td class="noprint"><button class="btn sm" data-card="'+s.id+'"><span class="str-pcl">카드</span><span class="str-mbl">답 보기</span></button></td></tr>'; }).join('')+
+    '</table></div><div class="row noprint" style="margin-top:10px"><button class="btn" id="strPrT">이 표 인쇄</button><button class="btn" id="strPrC">강점 카드 모두 인쇄</button></div></div>';
   h+='<div class="card strcards"><details id="strCardsD"><summary style="cursor:pointer;font-weight:700">학생 강점 카드 모아 보기 ('+got.length+')</summary><div class="strgrid">'+
     got.map(function(s){ return STR.card(s.name,M[s.id],{round:sr.name}); }).join('')+'</div></details></div>';
   v.innerHTML=h;
   v.querySelectorAll('.str-tbl th[data-k]').forEach(function(th){ th.onclick=function(){ T.strSort=th.dataset.k; draw(); }; });
   v.querySelectorAll('[data-card]').forEach(function(b){ b.onclick=function(){ var s=studs.filter(function(x){return x.id===b.dataset.card;})[0], j=M[s.id];
     modal(STR.card(s.name,j,{round:sr.name})+'<div class="sub" style="text-align:center;margin-top:8px">'+STR.traits.map(function(t){ return esc(t.name)+' '+j.sc[t.k].toFixed(1); }).join(' · ')+'</div>',[['닫기']]); }; });
-  var sm=document.getElementById('strSortM'); if(sm) sm.onchange=function(){ T.strSort=sm.value; draw(); };
   document.getElementById('strPrT').onclick=function(){ window.print(); };
   document.getElementById('strPrC').onclick=function(){ document.getElementById('strCardsD').open=true; document.body.classList.add('print-cards'); setTimeout(function(){ window.print(); },50); };
 }
