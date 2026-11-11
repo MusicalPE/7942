@@ -251,6 +251,9 @@
   #modalBox .stcard{border:0;padding:0}
   @media (max-width:640px){ .str-mlist{display:block} .str-pc{display:none!important} }
   @media print{ .str-mlist{display:none!important} .str-pc{display:block!important} }
+  .str-ai{margin-top:14px;padding-top:12px;border-top:2px dashed #EFE5D6;text-align:left}
+  .str-ai h4,#strAI_class h4{margin:10px 0 2px;font-size:14px;color:#2B735A}
+  .str-say{background:#DDF3E9;border-radius:12px;padding:10px 12px;color:#1F4D3E;line-height:1.5}
   /* ───── 인쇄 (마지막에 두어 화면 꾸밈보다 앞서게) ───── */
   @page{size:A4 landscape;margin:10mm}
   @media print{
@@ -274,7 +277,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.3.4', NEED_SHELL=1;
+var APP_VER='2.4.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -851,6 +854,7 @@ function vStrength(v){
       return '<div class="str-t"><div class="str-tn" style="color:'+t.color+'">'+esc(t.name)+'</div><div class="stb-bar" style="background:'+t.soft+'"><i style="width:'+STR.pct(v2)+'%;background:'+t.color+'"></i></div>'+
         '<div class="sub">반 평균 '+(v2==null?'-':v2.toFixed(1))+' · 아주 강해요 '+cnt[4]+'명 · 자라는 중 '+cnt[1]+'명</div></div>'; }).join('')+'</div>'+
     '<div class="sub" style="margin-top:8px">점수는 1~5점이에요. 문항마다 학생이 스스로 고른 답이라, 진단이 아니라 아이를 이해하는 실마리로 써 주세요.</div></div>';
+  if(got.length>=3) h+='<div class="card" id="strAI_class"></div>';
   if(notes.length) h+='<div class="card"><h2>함께 살펴볼 학생</h2><ul class="sub" style="line-height:1.8;padding-left:18px">'+notes.map(function(n){ return '<li>'+n+'</li>'; }).join('')+'</ul></div>';
   h+='<div class="card"><h2>학생별 강점 <span class="sub str-pc">제목을 누르면 그 힘이 강한 순서로</span></h2>'+
     '<div class="str-mlist"><div class="sub" style="margin-bottom:6px">색 칸은 그 학생의 가장 큰 힘이에요.</div><select id="strSortM" style="width:100%;margin-bottom:8px"><option value="no">번호 순서로</option>'+STR.traits.map(function(t){ return '<option value="'+t.k+'"'+(key===t.k?' selected':'')+'>'+esc(t.name)+'이 강한 순서로</option>'; }).join('')+'</select>'+
@@ -869,14 +873,98 @@ function vStrength(v){
   h+='<div class="card strcards"><details id="strCardsD"><summary style="cursor:pointer;font-weight:700">학생 강점 카드 모아 보기 ('+got.length+')</summary><div class="strgrid">'+
     got.map(function(s){ return STR.card(s.name,M[s.id],{round:sr.name}); }).join('')+'</div></details></div>';
   v.innerHTML=h;
+  if(document.getElementById('strAI_class')) strAIPaint(sr,null);
   v.querySelectorAll('.str-tbl th[data-k]').forEach(function(th){ th.onclick=function(){ T.strSort=th.dataset.k; draw(); }; });
   v.querySelectorAll('[data-card]').forEach(function(b){ b.onclick=function(){ var s=studs.filter(function(x){return x.id===b.dataset.card;})[0], j=M[s.id];
-    modal(STR.card(s.name,j,{round:sr.name})+'<div class="sub" style="text-align:center;margin-top:8px">'+STR.traits.map(function(t){ return esc(t.name)+' '+j.sc[t.k].toFixed(1); }).join(' · ')+'</div>',[['닫기']]); }; });
+    modal(STR.card(s.name,j,{round:sr.name})+'<div class="sub" style="text-align:center;margin-top:8px">'+STR.traits.map(function(t){ return esc(t.name)+' '+j.sc[t.k].toFixed(1); }).join(' · ')+'</div><div class="str-ai" id="strAI_'+s.id+'"></div>',[['닫기']]); strAIPaint(sr,s.id); }; });
   var sm=document.getElementById('strSortM'); if(sm) sm.onchange=function(){ T.strSort=sm.value; draw(); };
   document.getElementById('strPrT').onclick=function(){ window.print(); };
   document.getElementById('strPrC').onclick=function(){ document.getElementById('strCardsD').open=true; document.body.classList.add('print-cards'); setTimeout(function(){ window.print(); },50); };
 }
 window.addEventListener('afterprint',function(){ document.body.classList.remove('print-cards'); });
+
+/* ───────── 성격 강점 — AI 해석 (이름은 번호로 바꿔 보냄) ───────── */
+var STR_RULES='너는 초등학교 담임 선생님을 돕는 도우미야. 아래 자료는 학생이 스스로 답한 성격 강점 자기 보고 점수(1~5점)야. '+
+  '다섯 가지 힘은 어울리는 힘(외향성), 배려하는 힘(우호성), 끝까지 하는 힘(성실성), 마음을 다스리는 힘(정서 안정성, 낮으면 걱정이 많거나 화를 가라앉히기 어렵다고 답한 것), 궁금해하는 힘(개방성)이야. '+
+  '학생 이름은 "학생번호"로 바꿔 두었어(예: 학생3). 답에서도 학생은 꼭 "학생번호"로만 불러. '+
+  '자기 보고라서 실제와 다를 수 있으니 단정하지 말고 "~로 보여요", "~일 수 있어요"처럼 써. MBTI 같은 유형 이름이나 진단·낙인은 쓰지 마. '+
+  '낮은 점수는 약점이 아니라 "자라는 중인 힘"으로 보고, 강점을 살리는 쪽으로 제안해. 교우관계 자료가 있으면 함께 보되, 자료에 없는 사실은 지어내지 마. 존댓말로, 초등 교사가 바로 읽기 쉬운 짧은 문장으로 써.';
+function strAIData(sr,sid){
+  var studs=active(), an=makeAnon(studs), T_=an.tok, M=strMap(sr.id);
+  var fr=friendRounds(), lf=fr.length?fr[fr.length-1]:null, A=lf&&T.data[lf.id]?analyze(lf.id):null;
+  function one(s,full){ var j=M[s.id]; if(!j) return null; var o={학생:T_[s.id],성별:s.gender||''};
+    STR.traits.forEach(function(t){ o[t.name]=j.sc[t.k]; });
+    o.맡고싶은역할=j.roles||[]; o.나의좋은점=an.hide(String(j.me||'').slice(0,200));
+    if(A&&A.st[s.id]){ var x=A.st[s.id]; o.받은_O=x.rO; o.받은_X=x.rX; o.서로_O_친구수=x.mutualO; if(x.flags.length) o.살펴볼_표시=x.flags;
+      if(full){ o.서로_O_친구=A.studs.filter(function(b){ return A.pairs[s.id+'|'+b.id]==='g'; }).map(function(b){ return T_[b.id]; }); o.받은_칭찬=x.praise.slice(0,4).map(function(p){ return an.hide(p.reason||''); }); } }
+    return o; }
+  var got=studs.filter(function(s){ return M[s.id]; }), avg={};
+  STR.traits.forEach(function(t){ var sm=0; got.forEach(function(s){ sm+=M[s.id].sc[t.k]; }); avg[t.name]=got.length?Math.round(sm/got.length*100)/100:null; });
+  var data={조사:sr.name,응답:got.length,학생수:studs.length,반_평균:avg,교우관계_자료:A?lf.name:'없음'};
+  if(sid){ var me=studs.filter(function(s){ return s.id===sid; })[0]; data.분석할_학생=one(me,true); }
+  else data.학생=got.map(function(s){ return one(s,false); });
+  return {data:data,an:an};
+}
+function strAIPrompt(p,sid){
+  if(sid) return STR_RULES+'\n\n'+p.data.분석할_학생.학생+' 한 명의 강점을 풀어서 아래 JSON 형식으로만 답해.\n'+
+    '{"한줄요약":"","강점풀이":"가장 큰 힘과 그 힘이 교실에서 어떻게 보일지 2~3문장","친구관계와함께":"교우관계 자료와 엮어 2문장, 자료가 없으면 빈 문자열","교실에서살리기":["맡기면 좋을 역할이나 활동 2~3개"],"키워줄힘":"가장 자라는 중인 힘을 키울 방법 1~2문장","상담때물어볼말":["1~2개"],"학생에게해줄말":"학생에게 직접 건넬 따뜻한 칭찬 한마디"}\n\n자료:\n'+JSON.stringify(p.data);
+  return STR_RULES+'\n\n학급 전체의 강점을 보고 아래 JSON 형식으로만 답해.\n'+
+    '{"한줄요약":"","우리반의힘":"반 평균과 고르게 퍼진 모양을 보고 2~3문장","모둠활동제안":["강점이 섞이게 모둠을 꾸리는 방법 2~3개"],"살펴볼학생":[{"학생":"학생3","까닭":"","도움":""}],"학급활동제안":[{"활동":"","방법":""}]}\n'+
+    '살펴볼학생은 정말 필요한 학생만 많아야 5명, 학급활동제안은 3개.\n\n자료:\n'+JSON.stringify(p.data);
+}
+function strAIKey(sr,sid){ return aiCacheKey(sr.id,'str_'+(sid||'class')); }
+function strAIGet(sr,sid){ try{ return JSON.parse(lsGet(strAIKey(sr,sid))||'null'); }catch(e){ return null; } }
+function strAIRun(sr,sid,force){
+  var ck=strAIKey(sr,sid), job=T.aiJobs[ck];
+  if(job&&job.running) return; if(!force&&strAIGet(sr,sid)) return;
+  var P=strAIData(sr,sid);
+  job=T.aiJobs[ck]={running:true,start:Date.now(),model:''};
+  strAIPaint(sr,sid);
+  askAI(strAIPrompt(P,sid),function(name){ job.model=name; }).then(function(res){
+    res=deepShow(res,P.an.show);
+    lsSet(ck,JSON.stringify({res:res,sec:Math.round((Date.now()-job.start)/1000),model:job.model,at:new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}));
+    job.running=false; delete T.aiJobs[ck];
+    if(document.getElementById('strAI_'+(sid||'class'))) strAIPaint(sr,sid); else toast('성격 강점 AI 해석이 나왔어요');
+  }).catch(function(e){
+    job.running=false; delete T.aiJobs[ck]; T.strAIErr=aiErrText(e);
+    if(document.getElementById('strAI_'+(sid||'class'))) strAIPaint(sr,sid); else toast('성격 강점 AI 해석 중 문제가 생겼어요');
+  });
+}
+function strAIPaint(sr,sid){
+  var el=document.getElementById('strAI_'+(sid||'class')); if(!el) return;
+  var ck=strAIKey(sr,sid), job=T.aiJobs[ck], c=strAIGet(sr,sid), who=sid?'이 학생의 강점':'우리 반의 강점';
+  if(job&&job.running){
+    el.innerHTML='<h3 style="margin:0 0 4px">AI 해석</h3><div class="sub" id="strAIStep_'+(sid||'class')+'"></div>';
+    var tk=function(){ var s=document.getElementById('strAIStep_'+(sid||'class')); if(!s||!job.running){ clearInterval(iv); return; }
+      s.textContent=(job.model?'AI('+job.model.replace('gemini-','')+')가':'AI가')+' '+who+'을 읽고 있어요 · '+Math.round((Date.now()-job.start)/1000)+'초. 창을 닫아도 계속돼요.'; };
+    var iv=setInterval(tk,500); tk();
+    return;
+  }
+  if(c){
+    var r=c.res||{}, how=(c.sec?c.sec+'초':'')+(c.model?' · '+c.model.replace('gemini-',''):'');
+    var h='<h3 style="margin:0 0 4px">AI 해석 <span class="sub">'+esc(c.at||'')+(how?' ('+esc(how)+')':'')+'</span></h3>'+
+      '<div class="reason" style="font-size:15px"><b>한 줄 요약</b>'+esc(r.한줄요약||'')+'</div>';
+    if(sid){
+      h+='<h4>강점 풀이</h4>'+para(r.강점풀이)+(r.친구관계와함께?'<h4>친구 관계와 함께 보면</h4>'+para(r.친구관계와함께):'')+
+        '<h4>교실에서 살리기</h4>'+li(r.교실에서살리기,esc)+'<h4>키워 줄 힘</h4>'+para(r.키워줄힘)+'<h4>상담 때 물어볼 말</h4>'+li(r.상담때물어볼말,esc)+
+        (r.학생에게해줄말?'<h4>학생에게 해 줄 말</h4><div class="str-say">'+esc(r.학생에게해줄말)+'</div>':'');
+    } else {
+      h+='<div class="two" style="margin-top:8px"><div><h4>우리 반의 힘</h4>'+para(r.우리반의힘)+'<h4>모둠 꾸리기</h4>'+li(r.모둠활동제안,esc)+'</div>'+
+        '<div><h4>살펴볼 학생</h4>'+li(r.살펴볼학생,function(x){ return '<b>'+esc(x.학생||'')+'</b> '+esc(x.까닭||'')+(x.도움?'<div class="sub">도움: '+esc(x.도움)+'</div>':''); })+
+        '<h4>학급 활동</h4>'+li(r.학급활동제안,function(x){ return '<b>'+esc(x.활동||'')+'</b> '+esc(x.방법||''); })+'</div></div>';
+    }
+    h+='<p class="sub" style="margin-top:8px">AI의 해석이니 참고로만 써 주세요. <a href="#" class="strAIRe noprint">다시 듣기</a></p>';
+    el.innerHTML=h;
+    el.querySelector('.strAIRe').onclick=function(e){ e.preventDefault(); strAIRun(sr,sid,true); };
+    return;
+  }
+  var err=T.strAIErr; T.strAIErr=null;
+  el.innerHTML='<h3 style="margin:0 0 4px">AI 해석 <span class="sub">'+(sid?'강점 풀이 · 교실에서 살리기 · 학생에게 해 줄 말':'우리 반의 힘 · 모둠 꾸리기 · 살펴볼 학생')+'</span></h3>'+(err?'<div class="err">'+esc(err)+'</div>':'')+
+    '<p class="sub">'+aiStatusLine()+' 학생 이름은 번호로 바꿔서 보내요.</p><button class="btn main sm noprint strAIGo">AI에게 해석 듣기</button>'+
+    ((aiMode()!=='builtin'||aiKey())&&(err||aiMode()==='need'||aiMode()==='none')?keyBox():'');
+  el.querySelector('.strAIGo').onclick=function(){ strAIRun(sr,sid,false); };
+  bindKeyBox(el,function(){ strAIPaint(sr,sid); });
+}
 
 /* 응답 현황 */
 function vStatus(v){
