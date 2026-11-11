@@ -11,11 +11,12 @@
  *  - 응답     : 회차ID | 학생ID | 번호 | 이름 | 제출시각 | 서술형JSON | 관계JSON | 칭찬JSON | 사이JSON | 한마디
  */
 
-var SH = { ROSTER: '학생명단', ROUNDS: '회차', RESP: '응답' };
+var SH = { ROSTER: '학생명단', ROUNDS: '회차', RESP: '응답', SHARE: '공유' };
 var HEAD = {
   '학생명단': ['학생ID', '번호', '이름', '성별', '코드', '상태'],
   '회차': ['회차ID', '회차이름', '만든날', '상태', '설정JSON'],
-  '응답': ['회차ID', '학생ID', '번호', '이름', '제출시각', '서술형JSON', '관계JSON', '칭찬JSON', '사이JSON', '한마디']
+  '응답': ['회차ID', '학생ID', '번호', '이름', '제출시각', '서술형JSON', '관계JSON', '칭찬JSON', '사이JSON', '한마디'],
+  '공유': ['토큰', '회차ID', '학생ID', '한마디', '만든날']
 };
 var DEFAULT_PW = '0000';
 
@@ -44,7 +45,7 @@ function defaultSettings_() {
   };
 }
 
-var SHELL_VER = 2;   // 2판: 5단계 척도, 설정 전체를 학생 화면에 전달
+var SHELL_VER = 3;   // 2판: 5단계 척도, 설정 전체를 학생 화면에 전달 / 3판: 강점 카드 짧은 주소(공유 시트)
 
 /** 처음 한 번 편집기에서 [실행] — 권한을 받고 시트를 준비합니다 */
 function start() {
@@ -58,7 +59,8 @@ var API = {
   studentLogin: studentLogin, studentSubmit: studentSubmit,
   teacherLogin: teacherLogin, changePassword: changePassword, teacherInit: teacherInit,
   saveRoster: saveRoster, regenCodes: regenCodes, createRound: createRound, updateRound: updateRound,
-  deleteRound: deleteRound, getRoundData: getRoundData, resetResponse: resetResponse, exportMatrix: exportMatrix
+  deleteRound: deleteRound, getRoundData: getRoundData, resetResponse: resetResponse, exportMatrix: exportMatrix,
+  shareCards: shareCards, getCard: getCard
 };
 
 function doPost(e) {
@@ -380,6 +382,8 @@ function deleteRound(token, rid) {
       var v = sh.getDataRange().getValues();
       for (var i = v.length - 1; i >= 1; i--) if (String(v[i][0]) === rid) sh.deleteRow(i + 1);
     });
+    var shs = ss_().getSheetByName(SH.SHARE), sv = shs.getDataRange().getValues();
+    for (var k = sv.length - 1; k >= 1; k--) if (String(sv[k][1]) === rid) shs.deleteRow(k + 1);
     return readRounds_();
   });
 }
@@ -451,4 +455,42 @@ function exportMatrix(token, rid) {
   sh.setFrozenRows(1); sh.setFrozenColumns(1);
   sh.getRange(grid.length + 2, 1, 4, 1).setValues([['녹색: 서로 ○'], ['빨강: 서로 X'], ['노랑: 한쪽 ○, 한쪽 X'], ['가로줄 = 그 학생이 준 표시, 세로줄 = 받은 표시']]);
   return ss.getUrl() + '#gid=' + sh.getSheetId();
+}
+
+/* ───────── 3판: 강점 카드 짧은 주소 ─────────
+   선생님이 [보내기]를 누르면 학생마다 6글자 토큰을 만들어 '공유' 시트에 적어 두고,
+   학부모가 card.html?c=반코드-토큰 으로 열면 그 학생 카드 하나만 돌려줘요. */
+function token6_(used) {
+  var ch = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789', t;
+  do { t = ''; for (var i = 0; i < 6; i++) t += ch.charAt(Math.floor(Math.random() * ch.length)); } while (used[t]);
+  return t;
+}
+function shareCards(token, rid, items) {
+  checkT_(token);
+  return withLock_(function () {
+    var sh = ss_().getSheetByName(SH.SHARE), v = sh.getDataRange().getValues(), used = {}, at = {}, out = {};
+    for (var i = 1; i < v.length; i++) { used[String(v[i][0])] = 1; at[String(v[i][1]) + '|' + String(v[i][2])] = i + 1; }
+    (items || []).slice(0, 60).forEach(function (it) {
+      var sid = String(it.sid || ''), msg = String(it.msg || '').slice(0, 200); if (!sid) return;
+      var row = at[rid + '|' + sid];
+      if (row) { if (it.msg != null) sh.getRange(row, 4).setValue(msg); out[sid] = String(v[row - 1][0]); }
+      else { var t = token6_(used); used[t] = 1; sh.appendRow([t, rid, sid, msg, new Date()]); out[sid] = t; }
+    });
+    return out;
+  });
+}
+function getCard(t) {
+  var cache = CacheService.getScriptCache(), f = Number(cache.get('cfails') || 0);
+  if (f >= 60) throw new Error('잠시 뒤에 다시 열어 주세요.');
+  t = String(t || '').replace(/[^A-Za-z0-9]/g, '');
+  var v = rows_(SH.SHARE), hit = null;
+  for (var i = 0; i < v.length; i++) if (String(v[i][0]) === t) { hit = v[i]; break; }
+  if (!hit) { cache.put('cfails', String(f + 1), 600); throw new Error('카드를 찾지 못했어요. 선생님께 받은 주소를 다시 확인해 주세요.'); }
+  var rid = String(hit[1]), sid = String(hit[2]);
+  var r = readRounds_().filter(function (x) { return x.id === rid; })[0];
+  if (!r || r.settings.kind !== 'strength') throw new Error('카드를 찾지 못했어요.');
+  var a = readResponses_(rid).filter(function (x) { return x.sid === sid; })[0];
+  var st = readRoster_().filter(function (x) { return x.id === sid; })[0];
+  if (!a || !st) throw new Error('카드를 찾지 못했어요.');
+  return { n: st.name, r: r.name, a: (a.answers || [])[0] || '', m: String(hit[3] || '') };
 }

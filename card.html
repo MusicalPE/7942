@@ -8,8 +8,11 @@
 <link rel="icon" type="image/png" href="favicon-64.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta property="og:title" content="나의 강점 카드">
-<meta property="og:description" content="7942 친구사이 성격 강점 조사 결과">
-<meta property="og:image" content="https://musicalpe.github.io/7942/og.png">
+<meta property="og:description" content="7942 친구사이 · 선생님이 보내 준 성격 강점 조사 결과예요">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://musicalpe.github.io/7942/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="theme-color" content="#FFF8EE">
 <script>
 /* 카카오톡 안 브라우저로 열면 휴대폰 기본 브라우저로 넘김 (한 번만) */
@@ -41,6 +44,7 @@
   <div id="app"></div>
   <div class="note">학생이 스스로 답한 결과로 그린 카드예요. 성격을 정해 버리는 검사가 아니라, 내가 가진 힘을 알아보는 활동이에요.</div>
 </div>
+<script src="config.js"></script>
 <script src="strength.js"></script>
 <script>
 window.addEventListener('hashchange',function(){ location.reload(); });
@@ -48,16 +52,29 @@ window.addEventListener('hashchange',function(){ location.reload(); });
   var app=document.getElementById('app');
   function esc(x){ return String(x==null?'':x).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function dec(h){ h=h.replace(/-/g,'+').replace(/_/g,'/'); while(h.length%4) h+='='; return JSON.parse(decodeURIComponent(escape(atob(h)))); }
-  try{
-    var d=dec(location.hash.slice(1));
+  function show(d){
     var s=String(d.s||'').split('').map(Number), roles=(d.ro||[]).map(function(i){ return STR.roles[i]; }).filter(Boolean);
     if(s.length!==STR.items.length) throw new Error('bad');
     app.innerHTML=STR.card(d.n||'나',{s:s,roles:roles,me:d.me||''},{round:d.r||'',radar:true})+
       (d.m?'<div class="msg"><small>선생님이 남긴 한마디</small>'+esc(d.m)+'</div>':'');
     document.title=(d.n?d.n+'의 ':'')+'강점 카드 · 7942 친구사이';
-  }catch(e){
-    app.innerHTML='<div class="err">카드 주소가 잘렸거나 잘못되었어요.<br>선생님께 받은 주소나 QR을 다시 열어 주세요.</div>';
   }
+  function bad(t){ app.innerHTML='<div class="err">'+esc(t||'카드 주소가 잘렸거나 잘못되었어요.')+'<br>선생님께 받은 주소나 QR을 다시 열어 주세요.</div>'; }
+  function post(url,fn,args){ return fetch(url,{method:'POST',body:JSON.stringify({fn:fn,args:args})}).then(function(r){ return r.json(); }).then(function(j){ if(!j.ok) throw new Error(j.error); return j.data; }); }
+  var Q=new URLSearchParams(location.search), c=Q.get('c'), k=Q.get('k'), t=Q.get('t');
+  if(c||(k&&t)){
+    // 짧은 주소: 반 코드(또는 시트 키)로 선생님 시트를 찾아 이 학생 카드 하나만 받아 옴
+    app.innerHTML='<div class="err">카드를 불러오는 중이에요...</div>';
+    var m=String(c||'').match(/^(\d{5})-([A-Za-z0-9]{4,12})$/);
+    if(c&&!m){ bad(); return; }
+    var REG=(window.REGISTRY_URL||'').trim();
+    (m?post(REG,'resolve',[m[1]]):Promise.resolve(k)).then(function(key){
+      return post('https://script.google.com/macros/s/'+key+'/exec','getCard',[m?m[2]:t]);
+    }).then(function(x){ var a=JSON.parse(x.a||'{}'); show({n:x.n,r:x.r,s:(a.s||[]).join(''),ro:(a.roles||[]).map(function(r){ return STR.roles.indexOf(r); }),me:a.me,m:x.m}); })
+    .catch(function(e){ bad(e&&e.message); });
+    return;
+  }
+  try{ show(dec(location.hash.slice(1))); }catch(e){ bad(); }
 })();
 </script>
 </body>

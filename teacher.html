@@ -256,6 +256,12 @@
   .str-say{background:#DDF3E9;border-radius:12px;padding:10px 12px;color:#1F4D3E;line-height:1.5}
   .str-share{margin-top:14px;padding-top:12px;border-top:2px dashed #EFE5D6;text-align:left}
   .str-share #shQRbox svg{width:180px;height:180px}
+  .khelp{max-width:440px} .khelp a.btn{text-decoration:none}
+  .ksteps{list-style:none;counter-reset:k;padding:0;margin:10px 0 0}
+  .ksteps li{counter-increment:k;position:relative;padding:10px 0 10px 40px;border-bottom:1px dashed #EFE5D6;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+  .ksteps li:before{content:counter(k);position:absolute;left:0;top:9px;width:28px;height:28px;border-radius:50%;background:#DDF3E9;color:#1F4D3E;font-family:'Jua',sans-serif;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .ksteps li:nth-child(2):before{background:#FFE2DA;color:#6B2E22}.ksteps li:nth-child(3):before{background:#FFF1C9;color:#5C4510}.ksteps li:nth-child(4):before{background:#E9E3FB;color:#3B2D72}
+  .knote{background:#F7F3EC;border-radius:12px;padding:10px 12px;margin-top:12px;font-size:14px}.knote ul{margin:4px 0 0;padding-left:18px}
   /* ───── 인쇄 (마지막에 두어 화면 꾸밈보다 앞서게) ───── */
   @page{size:A4 landscape;margin:10mm}
   @media print{
@@ -279,7 +285,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.6.0', NEED_SHELL=1;
+var APP_VER='2.7.0', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -490,7 +496,7 @@ function fillClassCode(){
   var el=document.getElementById('cc'); if(!el) return;
   if(IS_GAS&&!REG){ el.innerHTML=''; return; }
   el.innerHTML='<div class="card" style="background:#f7f6f2;margin:10px 0 0"><span class="sub">반 코드를 확인하는 중...</span></div>';
-  var get = IS_GAS ? rawCall(REG,'lookup',[apiKey()]) : Promise.resolve(T.demoCC||'');
+  var get = (IS_GAS ? rawCall(REG,'lookup',[apiKey()]) : Promise.resolve(T.demoCC||'')).then(function(c){ T.cc=String(c||''); return c; });
   get.then(show).catch(function(e){ el.innerHTML='<div class="card" style="background:#f7f6f2;margin:10px 0 0"><span class="err">'+esc(e.message||e)+'</span></div>'; });
   function show(code){
     if(!code){
@@ -835,20 +841,28 @@ function strCardURL(st,j,roundName,msg){
   var b=btoa(unescape(encodeURIComponent(JSON.stringify(d)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   return location.origin+location.pathname.replace(/[^\/]*$/,'')+'card.html#'+b;
 }
+function strShort(){ return !DEMO_MODE && (T.shellVer||0)>=3; }
+function strCC(){ if(T.cc!=null) return Promise.resolve(T.cc); if(!REG) return Promise.resolve(T.cc=''); return rawCall(REG,'lookup',[apiKey()]).then(function(c){ return T.cc=String(c||''); },function(){ return T.cc=''; }); }
+function strShortURL(tok){ return strCC().then(function(cc){ var base=location.origin+location.pathname.replace(/[^\/]*$/,'')+'card.html'; return cc?base+'?c='+cc+'-'+tok:base+'?k='+apiKey()+'&t='+tok; }); }
+function strShareText(st,u){ return '[7942 친구사이] '+st.name+'의 강점 카드예요.\n'+u; }
 function strShareBox(sr,st,j){
   var c=strAIGet(sr,st.id), say=c&&c.res&&c.res.학생에게해줄말||'';
   return '<div class="str-share noprint"><h3 style="margin:0 0 4px">학생·학부모에게 보내기</h3>'+
-    '<p class="sub">이 학생의 강점 카드만 담긴 주소예요. 다른 학생 자료나 시트에는 들어갈 수 없어요.</p>'+
+    '<p class="sub">이 학생의 강점 카드만 볼 수 있는 주소예요. 다른 학생 자료나 시트에는 들어갈 수 없어요.'+(strShort()||DEMO_MODE?'':' <span style="color:#B4482F">껍데기(Code.gs)를 3판으로 바꾸면 주소가 짧아져요.</span>')+'</p>'+
     '<label class="sub" style="display:block;margin-top:6px">선생님 한마디 (넣지 않으려면 비워 두세요)</label><textarea id="shMsg" style="width:100%;min-height:64px;box-sizing:border-box">'+esc(say)+'</textarea>'+
     '<div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px"><button class="btn sm" id="shCopy">주소 복사</button><button class="btn sm" id="shQR">QR 보기</button>'+(navigator.share?'<button class="btn sm main" id="shSend">카톡 등으로 보내기</button>':'')+'</div>'+
     '<div id="shQRbox" style="text-align:center;margin-top:8px"></div></div>';
 }
 function strShareBind(sr,st,j){
-  function url(){ var m=document.getElementById('shMsg'); return strCardURL(st,j,sr.name,m?m.value.trim():''); }
+  function url(){ var m=document.getElementById('shMsg'), msg=m?m.value.trim():'';
+    if(!strShort()) return Promise.resolve(strCardURL(st,j,sr.name,msg));
+    return call('shareCards',T.token,sr.id,[{sid:st.id,msg:msg}]).then(function(x){ return strShortURL(x[st.id]); });
+  }
+  function busy(b,on){ if(b){ b.disabled=on; } }
   var c=document.getElementById('shCopy'), q=document.getElementById('shQR'), sh=document.getElementById('shSend');
-  if(c) c.onclick=function(){ var u=url(); (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(function(){ toast('주소를 복사했어요'); }).catch(function(){ prompt('주소를 복사해 주세요',u); }); };
-  if(q) q.onclick=function(){ var b=document.getElementById('shQRbox'); drawQR(b,url(),4); };
-  if(sh) sh.onclick=function(){ navigator.share({title:st.name+'의 강점 카드',text:'7942 친구사이 성격 강점 조사 결과예요.',url:url()}).catch(function(){}); };
+  if(c) c.onclick=function(){ busy(c,true); url().then(function(u){ var t=strShareText(st,u); return (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){ toast('안내 문구와 주소를 복사했어요'); }).catch(function(){ prompt('주소를 복사해 주세요',u); }); }).catch(fail).then(function(){ busy(c,false); }); };
+  if(q) q.onclick=function(){ busy(q,true); url().then(function(u){ var b=document.getElementById('shQRbox'); b.innerHTML='<div class="qq"></div><div class="sub" style="word-break:break-all;margin-top:4px">'+esc(u)+'</div>'; drawQR(b.querySelector('.qq'),u,4); }).catch(fail).then(function(){ busy(q,false); }); };
+  if(sh) sh.onclick=function(){ url().then(function(u){ return navigator.share({title:st.name+'의 강점 카드',text:'[7942 친구사이] '+st.name+'의 강점 카드예요.',url:u}); }).catch(function(){}); };
 }
 function strPrintQRs(sr,studs,M){
   var list=studs.filter(function(s){ return M[s.id]; }); if(!list.length){ toast('응답한 학생이 없어요'); return; }
@@ -856,7 +870,9 @@ function strPrintQRs(sr,studs,M){
   w.document.write('<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>강점 카드 QR</title><style>body{font-family:"Gowun Dodum","Malgun Gothic",sans-serif;margin:10mm}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm}.c{border:1.5px dashed #bbb;border-radius:10px;padding:5mm;text-align:center;break-inside:avoid}.c b{font-size:15px}.c svg{width:36mm;height:36mm}.c p{font-size:11px;color:#666;margin:4px 0 0}@page{size:A4;margin:8mm}</style></head><body><div class="g">'+
     list.map(function(s,i){ return '<div class="c"><b>'+esc(s.no+'. '+s.name)+'</b><div id="q'+i+'"></div><p>휴대폰 카메라로 찍으면<br>나의 강점 카드를 볼 수 있어요</p></div>'; }).join('')+'</div></body></html>');
   w.document.close();
-  loadQRLib().then(function(){ list.forEach(function(s,i){ var q=qrcode(0,'L'); q.addData(strCardURL(s,M[s.id],sr.name,'')); q.make(); w.document.getElementById('q'+i).innerHTML=q.createSvgTag({cellSize:3,margin:1}); }); setTimeout(function(){ w.print(); },300); });
+  var urls=strShort()?call('shareCards',T.token,sr.id,list.map(function(s){ return {sid:s.id,msg:null}; })).then(function(x){ return Promise.all(list.map(function(s){ return strShortURL(x[s.id]); })); })
+    :Promise.resolve(list.map(function(s){ return strCardURL(s,M[s.id],sr.name,''); }));
+  Promise.all([loadQRLib(),urls]).then(function(r){ var U=r[1]; list.forEach(function(s,i){ var q=qrcode(0,'L'); q.addData(U[i]); q.make(); w.document.getElementById('q'+i).innerHTML=q.createSvgTag({cellSize:strShort()?4:3,margin:1}); }); setTimeout(function(){ w.print(); },300); }).catch(function(e){ w.close(); fail(e); });
 }
 function vStrength(v){
   var sr=strRoundFor();
@@ -1547,10 +1563,27 @@ function renderAI(r,one){
     '<h3>학급 활동 제안</h3>'+li(r.학급활동제안,function(x){return '<b>'+esc(x.활동)+'</b>'+(x.방법?'<div class="sub">'+esc(x.방법)+'</div>':'');})+'</div></div>';
 }
 function keyBox(){
-  return '<div class="card" style="background:#FFF8EE;margin:12px 0 0"><h3 style="margin-top:0">내 Gemini 키</h3>'+
-    '<p class="sub">Google AI Studio(aistudio.google.com)에 구글로 로그인 → "Get API key" → "API 키 만들기"로 무료 키를 받아 붙여 넣으세요. 키는 AIza… 또는 AQ.… 로 시작해요(요즘 새로 만든 키는 AQ.…). 키는 이 컴퓨터에만 저장돼요.</p>'+
-    '<div class="set-row"><input type="password" class="kIn" placeholder="AIza… 또는 AQ.… 붙여 넣기" style="flex:1;min-width:220px" value="'+esc(aiKey())+'"><button class="btn main sm kSave">저장하고 분석</button>'+(aiKey()?'<button class="btn sm warn kDel">키 지우기</button>':'')+'</div></div>';
+  return '<div class="card" style="background:#FFF8EE;margin:12px 0 0"><h3 style="margin-top:0">내 Gemini 키 <span class="sub">무료</span></h3>'+
+    '<p class="sub">구글 AI Studio에서 무료로 받은 키를 붙여 넣으세요. 키는 이 컴퓨터에만 저장돼요.</p>'+
+    '<div class="set-row"><button class="btn sm kHelp">키 받는 법</button><input type="password" class="kIn" placeholder="AIza… 또는 AQ.… 붙여 넣기" style="flex:1;min-width:220px" value="'+esc(aiKey())+'"><button class="btn main sm kSave">저장하고 분석</button>'+(aiKey()?'<button class="btn sm warn kDel">키 지우기</button>':'')+'</div></div>';
 }
+/* 키 받는 법 (다른 팝업 위에 겹쳐 뜸) */
+function aiKeyHelp(){
+  var old=document.getElementById('kHelpL'); if(old) old.remove();
+  var L=document.createElement('div'); L.id='kHelpL'; L.className='modal'; L.style.zIndex=60;
+  L.innerHTML='<div class="box khelp"><h2 style="margin-top:0">Gemini 키 받는 법 <span class="sub">2분이면 돼요</span></h2>'+
+    '<ol class="ksteps">'+
+      '<li><b>AI Studio 열기</b><a class="btn sm main" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">AI Studio 열기</a></li>'+
+      '<li><b>구글 계정으로 로그인</b><span class="sub">학교 계정이 막혀 있으면 개인 구글 계정으로 해 주세요.</span></li>'+
+      '<li><b>[API 키 만들기] 누르기</b><span class="sub">영어 화면이면 [Create API key]예요. 프로젝트를 고르라고 하면 아무거나 고르거나 새로 만들면 돼요.</span></li>'+
+      '<li><b>키 복사해서 붙여 넣기</b><span class="sub">AIza… 또는 AQ.… 로 시작하는 긴 글자예요. 복사 단추를 눌러 7942의 키 칸에 붙여 넣고 [저장하고 분석]을 누르세요.</span></li>'+
+    '</ol>'+
+    '<div class="knote"><b>알아 두세요</b><ul><li>결제 정보를 넣지 않으면 무료 사용량 안에서만 쓰여서 돈이 나가지 않아요.</li><li>키는 이 컴퓨터(브라우저)에만 저장되고, 시트나 다른 곳에 올라가지 않아요.</li><li>키는 비밀번호와 같아요. 다른 사람에게 보여 주지 마세요.</li></ul></div>'+
+    '<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="kHelpX">닫기</button></div></div>';
+  document.body.appendChild(L);
+  L.onclick=function(e){ if(e.target===L||e.target.id==='kHelpX') L.remove(); };
+}
+document.addEventListener('click',function(e){ var a=e.target.closest&&e.target.closest('.kHelp'); if(a){ e.preventDefault(); aiKeyHelp(); } });
 function bindKeyBox(box,after){
   var s=box.querySelector('.kSave'), d=box.querySelector('.kDel');
   if(s) s.onclick=function(){ var k=box.querySelector('.kIn').value.trim(); if(!/^(AIza|AQ\.)\S{20,}$/.test(k)){ toast('AIza 또는 AQ. 로 시작하는 키를 통째로 넣어 주세요'); return; } lsSet('7942_gemini_key',k); toast('키를 저장했어요'); if(after) after(); };
