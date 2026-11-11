@@ -5,7 +5,7 @@
 
 - 학생 화면: https://musicalpe.github.io/7942/
 - 선생님 화면: https://musicalpe.github.io/7942/teacher.html
-- 미리보기(지어낸 이름): https://musicalpe.github.io/7942/teacher.html?demo , https://musicalpe.github.io/7942/?demo
+- 미리보기(지어낸 이름): https://musicalpe.github.io/7942/teacher.html?demo , https://musicalpe.github.io/7942/?demo , 성격 강점 학생 화면 https://musicalpe.github.io/7942/?demo&str (선생님 미리보기의 성격 강점 AI 해석은 지어낸 예시가 먼저 보여요)
 
 ## 할 수 있는 것
 
@@ -20,7 +20,7 @@
 - 선생님 화면은 [앱으로 설치]를 누르면 컴퓨터·휴대폰에 앱처럼 설치됨
 - 성격 강점 조사: 회차를 만들 때 [성격 강점 조사]를 고르면, 학생이 나에 대한 문항 20개에 답하고 다섯 가지 힘(어울리는 힘·배려하는 힘·끝까지 하는 힘·마음을 다스리는 힘·궁금해하는 힘)을 막대로 보여 줌. 성격 5요인(Big Five) 틀을 바탕으로 공개 문항 은행(IPIP)의 내용을 초등학생 말로 새로 쓴 문항이며, 유형 이름은 붙이지 않음. 학생은 제출 뒤 나의 강점 카드를 받고, 결과는 짝·모둠 추천과 AI 분석에도 함께 쓰임. 강점 카드와 [성격 강점] 탭에서 AI 해석(학생 한 명: 강점 풀이·교실에서 살리기·학생에게 해 줄 말 / 학급: 우리 반의 힘·모둠 꾸리기·살펴볼 학생)도 들을 수 있음. 껍데기(Code.gs)는 바꾸지 않아도 됨
 
-소개 그림 21장: [intro](intro/) 폴더 (01.png ~ 21.png)
+소개 그림 24장: [intro](intro/) 폴더 (01.png ~ 24.png, 21~23은 성격 강점)
 
 ## 처음 설치 (선생님 한 번만)
 
