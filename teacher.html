@@ -277,7 +277,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.4.1', NEED_SHELL=1;
+var APP_VER='2.4.2', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -854,7 +854,7 @@ function vStrength(v){
       return '<div class="str-t"><div class="str-tn" style="color:'+t.color+'">'+esc(t.name)+'</div><div class="stb-bar" style="background:'+t.soft+'"><i style="width:'+STR.pct(v2)+'%;background:'+t.color+'"></i></div>'+
         '<div class="sub">반 평균 '+(v2==null?'-':v2.toFixed(1))+' · 아주 강해요 '+cnt[4]+'명 · 자라는 중 '+cnt[1]+'명</div></div>'; }).join('')+'</div>'+
     '<div class="sub" style="margin-top:8px">점수는 1~5점이에요. 문항마다 학생이 스스로 고른 답이라, 진단이 아니라 아이를 이해하는 실마리로 써 주세요.</div></div>';
-  if(got.length>=3) h+='<div class="card" id="strAI_class"></div>';
+  h+=got.length>=3?'<div class="card" id="strAI_class"></div>':'<div class="card"><h3 style="margin:0 0 4px">AI 해석 <span class="sub">우리 반의 힘 · 모둠 꾸리기 · 살펴볼 학생</span></h3><p class="sub">학급 전체 해석은 3명 이상 응답하면 쓸 수 있어요. (지금 '+got.length+'명) 학생 한 명 해석은 [카드]·[결과 보기]에서 바로 들을 수 있어요.</p></div>';
   if(notes.length) h+='<div class="card"><h2>함께 살펴볼 학생</h2><ul class="sub" style="line-height:1.8;padding-left:18px">'+notes.map(function(n){ return '<li>'+n+'</li>'; }).join('')+'</ul></div>';
   h+='<div class="card"><h2>학생별 강점 <span class="sub str-pc">제목을 누르면 그 힘이 강한 순서로</span></h2>'+
     '<div class="str-mlist"><div class="sub" style="margin-bottom:6px">색 칸은 그 학생의 가장 큰 힘이에요.</div><select id="strSortM" style="width:100%;margin-bottom:8px"><option value="no">번호 순서로</option>'+STR.traits.map(function(t){ return '<option value="'+t.k+'"'+(key===t.k?' selected':'')+'>'+esc(t.name)+'이 강한 순서로</option>'; }).join('')+'</select>'+
