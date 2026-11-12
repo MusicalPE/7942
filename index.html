@@ -157,7 +157,7 @@
 <script>
 var KEY_NAME='7942_key';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.3.0', NEED_SHELL=1;
+var APP_VER='2.7.1', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -487,11 +487,14 @@ function askSubmit(){
   document.getElementById('mYes').onclick=function(){
     var b=this; b.disabled=true; b.textContent='보내는 중...';
     var isStr=S.info.settings.kind==='strength';
+    var mine=isStr?{s:(S.data.sv||[]).slice(),roles:(S.data.roles||[]).slice(),me:S.data.me}:null;
+    // 보내기 전에 생기는 오류도 아래 catch 로 가게 (멈춘 채로 '보내는 중'에 남지 않게)
+    Promise.resolve().then(function(){
     var payload=isStr?{ answers:STR.pack(S.data.sv,S.data.roles,S.data.me), rel:{}, praise:[], conflict:[], message:'' }:{ answers:S.data.answers, rel:S.data.rel,
       praise:(S.data.praise||[]).filter(function(p){return p&&p.id;}),
       conflict:(S.data.conflict||[]).filter(function(p){return p&&p.id;}), message:S.data.message };
-    var mine={s:S.data.sv.slice(),roles:S.data.roles?S.data.roles.slice():[],me:S.data.me};
-    call('studentSubmit',S.info.token,payload).then(function(){
+    return call('studentSubmit',S.info.token,payload);
+    }).then(function(){
       clearDraft(); ssSet(null); md.classList.add('hide'); bar(false);
       if(isStr){
         app.innerHTML='<div class="card center" style="margin-top:24px"><div class="done">제출했어요. 고마워요!</div>'+(S.info.settings.showCard===false?'<div class="sub">선생님이 결과를 보고 이야기해 줄 거예요.</div></div>':'<div class="sub">나의 강점 카드예요. 화면을 찍어 두어도 좋아요.</div></div>'+STR.card(S.info.name,mine,{round:S.info.roundName}));
@@ -499,7 +502,7 @@ function askSubmit(){
       }
       app.innerHTML='<div class="card center" style="margin-top:40px"><div class="done">제출했어요. 고마워요!</div><div class="sub">솔직하게 적어 준 마음은 선생님만 보고, 더 좋은 우리 반을 만드는 데 쓸게요.</div></div>';
     }).catch(function(e){
-      md.classList.add('hide');
+      md.classList.add('hide'); b.disabled=false; b.textContent='제출하기';
       var msg=e.message||String(e);
       if(/다시 코드/.test(msg)){ showLogin(msg); } else { document.getElementById('err').textContent=msg; }
     });
