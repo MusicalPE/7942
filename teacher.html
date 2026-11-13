@@ -285,7 +285,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.7.2', NEED_SHELL=1;
+var APP_VER='2.7.3', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -1574,6 +1574,7 @@ function shellHelp(){
   var L=document.createElement('div'); L.id='shHelpL'; L.className='modal'; L.style.zIndex=60;
   L.innerHTML='<div class="box khelp"><h2 style="margin-top:0">껍데기 '+SHELL_LATEST+'판으로 바꾸는 법 <span class="sub">3분이면 돼요</span></h2>'+
     '<p class="sub" style="margin:0">지금 쓰는 시트는 그대로 두고 코드만 바꿔요. 명단·회차·응답은 그대로 남아요.'+(IS_GAS?' (지금 '+(T.shellVer||1)+'판)':'')+'</p>'+
+    '<div class="knote" style="margin-top:8px;background:#FFF1C9"><b>컴퓨터에서 해 주세요.</b> 휴대폰에서는 Apps Script 화면이 잘 열리지 않고 코드 붙여 넣기도 어려워요.'+(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?' 지금은 휴대폰이라, 컴퓨터에서 선생님 화면을 열고 [설문 설정] 탭의 이 단추를 눌러 주세요.':'')+'</div>'+
     '<ol class="ksteps">'+
       '<li><b>새 코드 복사하기</b><button class="btn sm main" id="shCopyCode">Code.gs 복사</button><span class="sub" id="shCopyMsg"></span></li>'+
       '<li><b>내 시트에서 Apps Script 열기</b><span class="sub">'+(T.sheetUrl?'<a href="'+esc(T.sheetUrl)+'" target="_blank" rel="noopener">내 시트 열기</a> → ':'내 시트 → ')+'[확장 프로그램] → [Apps Script]</span></li>'+
