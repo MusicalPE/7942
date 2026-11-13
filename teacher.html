@@ -285,7 +285,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.7.3', NEED_SHELL=1;
+var APP_VER='2.7.4', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -1579,7 +1579,7 @@ function shellHelp(){
       '<li><b>새 코드 복사하기</b><button class="btn sm main" id="shCopyCode">Code.gs 복사</button><span class="sub" id="shCopyMsg"></span></li>'+
       '<li><b>내 시트에서 Apps Script 열기</b><span class="sub">'+(T.sheetUrl?'<a href="'+esc(T.sheetUrl)+'" target="_blank" rel="noopener">내 시트 열기</a> → ':'내 시트 → ')+'[확장 프로그램] → [Apps Script]</span></li>'+
       '<li><b>원래 코드를 모두 지우고 붙여 넣기</b><span class="sub">Code.gs 안을 클릭 → 모두 선택(Ctrl+A) → 붙여 넣기(Ctrl+V) → 저장(디스크 단추 또는 Ctrl+S)</span></li>'+
-      '<li><b>새 버전으로 배포</b><span class="sub">[배포] → [배포 관리] → 연필 단추 → 버전에서 [새 버전] → [배포]. 주소는 그대로라 학생 주소·반 코드도 그대로예요. 권한 창이 뜨면 [허용]을 눌러 주세요.</span></li>'+
+      '<li><b>새 버전으로 배포</b><span class="sub">[배포] → [배포 관리] → 연필(수정) → 버전에서 [새 버전] → [배포]. 주소는 그대로라 학생 주소·반 코드도 그대로예요. 권한 창이 뜨면 [허용]을 눌러 주세요.</span></li>'+
     '</ol>'+
     '<div class="knote">다 바꾼 뒤 이 화면을 새로고침하면 새 판이 적용돼요.</div>'+
     '<textarea id="shCodeBox" style="display:none;width:100%;height:120px;margin-top:8px;font-size:11px"></textarea>'+
