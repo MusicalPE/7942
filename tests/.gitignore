@@ -1,0 +1,4 @@
+node_modules/
+chk_tmp/
+eslint.config.js
+package-lock.json

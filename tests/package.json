@@ -1,0 +1,5 @@
+{
+  "name": "7942-tests",
+  "private": true,
+  "devDependencies": { "eslint": "^9", "globals": "^15" }
+}

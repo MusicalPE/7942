@@ -69,3 +69,7 @@
 QR 코드: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT)
 
 만든이: 음악적체육인
+
+## 올리기 전 시험
+
+단순 수정은 `python3 tests/check.py`(코드 검사), 기능 수정은 `bash tests/full.sh`(전체 시험)를 돌리고 올립니다. 자세한 내용은 [tests/README.txt](tests/README.txt).
