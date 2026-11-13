@@ -285,7 +285,7 @@
 <script>
 var KEY_NAME='7942_tkey';
 /* ───── 연결 (GitHub 화면 ↔ 선생님 시트 껍데기) ───── */
-var APP_VER='2.7.0', NEED_SHELL=1;
+var APP_VER='2.7.2', NEED_SHELL=1;
 var Q=new URLSearchParams(location.search);
 var DEMO_MODE=Q.has('demo');
 var IS_GAS=!DEMO_MODE;
@@ -470,7 +470,7 @@ function draw(){
     '<button class="btn sm main" id="newR">새 회차 만들기</button><span style="flex:1"></span>'+
     (IS_GAS?'':'<span class="demo">미리보기(지어낸 이름)</span>')+
     '<button class="btn sm" id="lnk">학생용 주소</button><a class="btn sm" href="'+esc(T.sheetUrl)+'" target="_blank" style="text-decoration:none">시트 열기</a><button class="btn sm btn-install hide">앱으로 설치</button><button class="btn sm" id="lgo">로그아웃</button></header>'+
-    '<main>'+(T.shellOld?'<div class="card warnbar" style="background:#fdecea;border-color:#f0b8ae">시트 껍데기가 예전 버전이에요. 설치 안내를 보고 Code.gs를 새로 붙여 넣은 뒤 [배포 관리]에서 새 버전으로 배포해 주세요.</div>':'')+(T.defaultPw?'<div class="card warnbar" style="background:#fff8e6;border-color:#f0d58a">처음 비밀번호(0000)를 쓰고 있어요. [설문 설정] 탭 아래에서 꼭 바꿔 주세요.</div>':'')+
+    '<main>'+(T.shellOld?'<div class="card warnbar" style="background:#fdecea;border-color:#f0b8ae">시트 껍데기가 예전 버전이에요. <button class="btn sm shHelp">새 판으로 바꾸는 법</button></div>':'')+(T.defaultPw?'<div class="card warnbar" style="background:#fff8e6;border-color:#f0d58a">처음 비밀번호(0000)를 쓰고 있어요. [설문 설정] 탭 아래에서 꼭 바꿔 주세요.</div>':'')+
     '<div class="tabs">'+TABS.filter(function(t){ return !isStr||STR_TABS.indexOf(t[0])>=0; }).map(function(t){ return '<button data-t="'+t[0]+'" class="'+(T.tab===t[0]?'on':'')+'">'+t[1]+'</button>'; }).join('')+'</div><div id="view"></div></main>';
   root.querySelectorAll('.tabs button').forEach(function(b){ b.onclick=function(){ if(T.tab==='roster'&&T.rosterDirty&&!confirm('명단에서 고친 내용을 아직 저장하지 않았어요. 그냥 넘어갈까요?')) return; T.tab=b.dataset.t; draw(); }; });
   var rs=document.getElementById('rsel'); if(rs) rs.onchange=function(){ T.rid=rs.value; T.sel=null; loadRound(T.rid).then(draw); };
@@ -848,7 +848,7 @@ function strShareText(st,u){ return '[7942 친구사이] '+st.name+'의 강점 �
 function strShareBox(sr,st,j){
   var c=strAIGet(sr,st.id), say=c&&c.res&&c.res.학생에게해줄말||'';
   return '<div class="str-share noprint"><h3 style="margin:0 0 4px">학생·학부모에게 보내기</h3>'+
-    '<p class="sub">이 학생의 강점 카드만 볼 수 있는 주소예요. 다른 학생 자료나 시트에는 들어갈 수 없어요.'+(strShort()||DEMO_MODE?'':' <span style="color:#B4482F">껍데기(Code.gs)를 3판으로 바꾸면 주소가 짧아져요.</span>')+'</p>'+
+    '<p class="sub">이 학생의 강점 카드만 볼 수 있는 주소예요. 다른 학생 자료나 시트에는 들어갈 수 없어요.'+(strShort()||DEMO_MODE?'':' <span style="color:#B4482F">껍데기(Code.gs)를 3판으로 바꾸면 주소가 짧아져요.</span> <a href="#" class="shHelp">3판으로 바꾸는 법</a>')+'</p>'+
     '<label class="sub" style="display:block;margin-top:6px">선생님 한마디 (넣지 않으려면 비워 두세요)</label><textarea id="shMsg" style="width:100%;min-height:64px;box-sizing:border-box">'+esc(say)+'</textarea>'+
     '<div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px"><button class="btn sm" id="shCopy">주소 복사</button><button class="btn sm" id="shQR">QR 보기</button>'+(navigator.share?'<button class="btn sm main" id="shSend">카톡 등으로 보내기</button>':'')+'</div>'+
     '<div id="shQRbox" style="text-align:center;margin-top:8px"></div></div>';
@@ -1567,6 +1567,33 @@ function keyBox(){
     '<p class="sub">구글 AI Studio에서 무료로 받은 키를 붙여 넣으세요. 키는 이 컴퓨터에만 저장돼요.</p>'+
     '<div class="set-row"><button class="btn sm kHelp">키 받는 법</button><input type="password" class="kIn" placeholder="AIza… 또는 AQ.… 붙여 넣기" style="flex:1;min-width:220px" value="'+esc(aiKey())+'"><button class="btn main sm kSave">저장하고 분석</button>'+(aiKey()?'<button class="btn sm warn kDel">키 지우기</button>':'')+'</div></div>';
 }
+/* ───────── 껍데기 새 판으로 바꾸는 법 (기존 시트·자료는 그대로, Code.gs 만 바꿈) ───────── */
+var SHELL_LATEST=3;
+function shellHelp(){
+  var old=document.getElementById('shHelpL'); if(old) old.remove();
+  var L=document.createElement('div'); L.id='shHelpL'; L.className='modal'; L.style.zIndex=60;
+  L.innerHTML='<div class="box khelp"><h2 style="margin-top:0">껍데기 '+SHELL_LATEST+'판으로 바꾸는 법 <span class="sub">3분이면 돼요</span></h2>'+
+    '<p class="sub" style="margin:0">지금 쓰는 시트는 그대로 두고 코드만 바꿔요. 명단·회차·응답은 그대로 남아요.'+(IS_GAS?' (지금 '+(T.shellVer||1)+'판)':'')+'</p>'+
+    '<ol class="ksteps">'+
+      '<li><b>새 코드 복사하기</b><button class="btn sm main" id="shCopyCode">Code.gs 복사</button><span class="sub" id="shCopyMsg"></span></li>'+
+      '<li><b>내 시트에서 Apps Script 열기</b><span class="sub">'+(T.sheetUrl?'<a href="'+esc(T.sheetUrl)+'" target="_blank" rel="noopener">내 시트 열기</a> → ':'내 시트 → ')+'[확장 프로그램] → [Apps Script]</span></li>'+
+      '<li><b>원래 코드를 모두 지우고 붙여 넣기</b><span class="sub">Code.gs 안을 클릭 → 모두 선택(Ctrl+A) → 붙여 넣기(Ctrl+V) → 저장(디스크 단추 또는 Ctrl+S)</span></li>'+
+      '<li><b>새 버전으로 배포</b><span class="sub">[배포] → [배포 관리] → 연필 단추 → 버전에서 [새 버전] → [배포]. 주소는 그대로라 학생 주소·반 코드도 그대로예요. 권한 창이 뜨면 [허용]을 눌러 주세요.</span></li>'+
+    '</ol>'+
+    '<div class="knote">다 바꾼 뒤 이 화면을 새로고침하면 새 판이 적용돼요.</div>'+
+    '<textarea id="shCodeBox" style="display:none;width:100%;height:120px;margin-top:8px;font-size:11px"></textarea>'+
+    '<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="shHelpX">닫기</button></div></div>';
+  document.body.appendChild(L);
+  L.onclick=function(e){ if(e.target===L||e.target.id==='shHelpX') L.remove(); };
+  document.getElementById('shCopyCode').onclick=function(){
+    var msg=document.getElementById('shCopyMsg'); msg.textContent='가져오는 중...';
+    fetch('shell/Code.gs?v='+APP_VER,{cache:'no-cache'}).then(function(r){ if(!r.ok) throw new Error(); return r.text(); }).then(function(code){
+      return (navigator.clipboard?navigator.clipboard.writeText(code):Promise.reject()).then(function(){ msg.textContent='복사했어요! 이제 2번으로 가세요.'; })
+        .catch(function(){ var t=document.getElementById('shCodeBox'); t.style.display='block'; t.value=code; t.focus(); t.select(); msg.textContent='아래 칸의 글자가 모두 선택됐어요. Ctrl+C로 복사해 주세요.'; });
+    }).catch(function(){ msg.textContent='코드를 가져오지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'; });
+  };
+}
+document.addEventListener('click',function(e){ var a=e.target.closest&&e.target.closest('.shHelp'); if(a){ e.preventDefault(); shellHelp(); } });
 /* 키 받는 법 (다른 팝업 위에 겹쳐 뜸) */
 function aiKeyHelp(){
   var old=document.getElementById('kHelpL'); if(old) old.remove();
@@ -1750,7 +1777,7 @@ function vSettings(v){
     '<div class="card"><h2>친구 관계 표시</h2>'+
       '<div class="set-row"><label><input type="radio" name="sc" value="3"'+(Number(s.relScale)!==5?' checked':'')+'> 3단계 (○ 친해 · △ 보통 · X 사이가 안 좋아)</label></div>'+
       '<div class="set-row"><label><input type="radio" name="sc" value="5"'+(Number(s.relScale)===5?' checked':'')+(T.shellVer<2?' disabled':'')+'> 5단계 (5 아주 친해 · 4 친해 · 3 보통 · 2 조금 불편 · 1 사이가 안 좋아)</label></div>'+
-      (T.shellVer<2?'<div class="sub" style="color:var(--x)">5단계는 껍데기 2판이 필요해요. 새 Code.gs를 붙여 넣고 [배포 관리]에서 새 버전으로 배포해 주세요.</div>':'<div class="sub">5단계도 관계표·친구 그룹은 4~5점을 ○, 3점을 △, 1~2점을 X로 계산하고, 칸에는 점수를 보여 줘요. 받은 평균 점수도 더해져요. 고학년이나 더 자세히 보고 싶은 회차에 써 보세요.</div>')+
+      (T.shellVer<2?'<div class="sub" style="color:var(--x)">5단계는 껍데기 2판 이상이 필요해요. <a href="#" class="shHelp">새 판으로 바꾸는 법</a></div>':'<div class="sub">5단계도 관계표·친구 그룹은 4~5점을 ○, 3점을 △, 1~2점을 X로 계산하고, 칸에는 점수를 보여 줘요. 받은 평균 점수도 더해져요. 고학년이나 더 자세히 보고 싶은 회차에 써 보세요.</div>')+
       '<div class="set-row"><label><input type="checkbox" id="reqAll"'+(s.requireAllRelations?' checked':'')+'> 모든 친구를 다 표시해야 다음으로 넘어가기</label></div></div>'+
     '<div class="card"><h2>칭찬하고 싶은 친구</h2>'+
       '<div class="set-row"><label><input type="radio" name="pm" value="gender"'+(s.praiseMode==='gender'?' checked':'')+'> 남녀 나눠 고르기</label> 남 <input type="number" id="pmM" min="0" max="5" style="width:60px" value="'+s.praiseMale+'">명 · 여 <input type="number" id="pmF" min="0" max="5" style="width:60px" value="'+s.praiseFemale+'">명</div>'+
@@ -1763,7 +1790,7 @@ function vSettings(v){
       '<div class="set-row"><label style="width:90px">이유 질문</label><input id="cQ" value="'+esc(s.conflictQuestion)+'" style="flex:1"></div></div>'+
     '<div class="card"><h2>선생님께 한마디</h2><label><input type="checkbox" id="tMsg"'+(s.askTeacherMessage?' checked':'')+'> 묻기</label></div>'+
     '<div class="card"><button class="btn main" id="save">이 회차 설정 저장</button> <button class="btn warn" id="delR" style="float:right">이 회차 지우기</button></div>'+
-    (IS_GAS?'<div class="card"><h2>연결된 시트</h2><div class="sub">이 기기는 지금 연결된 시트로 열려요. 다른 반 시트를 쓰려면 연결을 끊고 새 주소를 넣으세요.</div><div class="set-row"><button class="btn" id="unl">연결 끊기</button><span class="sub">화면 버전 '+APP_VER+'</span></div></div>':'')+
+    (IS_GAS?'<div class="card"><h2>연결된 시트</h2><div class="sub">이 기기는 지금 연결된 시트로 열려요. 다른 반 시트를 쓰려면 연결을 끊고 새 주소를 넣으세요.</div><div class="set-row"><button class="btn" id="unl">연결 끊기</button><span class="sub">화면 버전 '+APP_VER+' · 껍데기 '+(T.shellVer||1)+'판'+((T.shellVer||1)<SHELL_LATEST?' (새 판 있음)':'')+'</span>'+((T.shellVer||1)<SHELL_LATEST?'<button class="btn sm main shHelp">'+SHELL_LATEST+'판으로 바꾸는 법</button>':'')+'</div></div>':'')+
     '<div class="card"><h2>선생님 비밀번호 바꾸기</h2><div class="set-row"><input type="password" id="op" placeholder="지금 비밀번호"><input type="password" id="np" placeholder="새 비밀번호(4자 이상)"><button class="btn" id="cp">바꾸기</button></div></div>'+
     '<div class="card" style="border:2px dashed #F2C7BA"><h2>새 학년 시작 (전체 초기화)</h2>'+
       '<div class="sub">새 학년이 되면 지난 반 자료를 지우고 처음부터 쓸 수 있어요. 모든 회차와 학생 응답, 이 컴퓨터에 남은 AI 분석 결과가 지워져요. 비밀번호·반 코드·시트 연결은 그대로예요.</div>'+
